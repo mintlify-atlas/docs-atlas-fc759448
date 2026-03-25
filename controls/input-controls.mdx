@@ -1,0 +1,149 @@
+---
+title: "On-screen input controls"
+description: "Create and manage virtual gamepad and keyboard overlays that render on top of running Windows apps inside Winlator."
+---
+
+Winlator's input controls system lets you place virtual buttons, thumbsticks, D-pads, and trackpads directly on your screen, on top of any running Windows application. These on-screen elements translate touch gestures into the keyboard keys, mouse actions, or gamepad inputs that the game expects.
+
+## Controls profiles
+
+Every set of on-screen controls is stored in a **ControlsProfile** — a named collection of control elements saved to an `.icp` file (Input Controls Profile). A profile holds:
+
+- A **name** and a numeric **ID** used to reference it from shortcuts and containers
+- A **cursor speed** multiplier that scales how fast the mouse cursor moves when using trackpad or mouse-move bindings
+- An ordered list of **control elements** (buttons, sticks, D-pads, etc.)
+- Optional **external controller bindings** for physical gamepads paired with this profile
+
+Profiles are stored under the app's private files directory at `files/profiles/controls-<id>.icp`.
+
+When you export a profile, it is written to `Downloads/Winlator/profiles/<name>.icp` and becomes accessible to other apps and file managers.
+
+## Pre-bundled game profiles
+
+Winlator ships with ready-made profiles for a wide range of games. These are copied into your profiles directory on first launch (and updated automatically on app upgrades). Available profiles include:
+
+<CardGroup cols={2}>
+  <Card title="Action / Shooter" icon="crosshairs">
+    Alien Versus Predator, Bioshock, Call of Juarez Gunslinger, GTA 5, Hitman 2, IGI 2, Metro 2033, Prey, Quake 4, RAGE, Second Sight, Singularity, The Forest, Wolfenstein
+  </Card>
+  <Card title="RPG / Adventure" icon="scroll">
+    Alpha Protocol, Dark Souls 2, Deus Ex Human Revolution, Divinity 2 DC, Drakensang, Fallout 3, Final Fantasy 8, Final Fantasy Type-0, Mass Effect 2, Oblivion, Risen 2, Skyrim, Ultima Underworld, Xanadu Next, Ys Origin
+  </Card>
+  <Card title="Platformer / Indie" icon="gamepad-2">
+    Cyber Shadow, Gravity Circuit, La Mulana, Rayman 3, Shovel Knight, Sonic Generations, Sonic Mania, SteamWorld Dig 2, Sunset Overdrive, The Alliance Alive, Unepic
+  </Card>
+  <Card title="Racing / Other" icon="car">
+    Driver Parallel Lines, Far Cry 4, FlatOut 2, Front Mission Evolved, Infernal, Marvel Ultimate Alliance, Psychonauts, Spiderman Shattered Dimensions, Stalker CS, Star Wars Jedi Knight 2, Turok 2, Turok Evolution
+  </Card>
+</CardGroup>
+
+<Tip>
+  Pre-bundled profiles are great starting points. Duplicate one that is close to what you need, then tweak it in the controls editor rather than building from scratch.
+</Tip>
+
+## Control element types
+
+Each element placed on the overlay has a **type** that determines how it responds to touch:
+
+| Type | Description |
+|------|-------------|
+| `BUTTON` | A single-tap button. Sends one binding on press and releases it on lift. Can be set as a **toggle switch** so it stays pressed until tapped again. Supports circle, rect, round-rect, and square shapes. |
+| `D_PAD` | A four-way directional pad. Each direction maps to its own binding (default: W / D / S / A). |
+| `RANGE_BUTTON` | A scrollable strip of keys (A–Z, 0–9, F1–F12, or Numpad 0–9). Drag horizontally or vertically to select the active key. Useful for games that require many keyboard keys in one compact widget. |
+| `STICK` | An analog thumbstick with a dead zone and configurable sensitivity. Can send WASD-style key events or full gamepad axis values. |
+| `TRACKPAD` | A touch-area that moves the mouse cursor. Supports acceleration and can also send gamepad axis values for games that use direct axis input. |
+
+Every element also has:
+
+- **Shape** — `CIRCLE`, `RECT`, `ROUND_RECT`, or `SQUARE` (applies to BUTTON type)
+- **Scale** — a float multiplier for the element's rendered size
+- **Position** — stored as fractional screen coordinates so the layout adapts to different screen resolutions
+- **Bindings** — one or more `Binding` values (keyboard key, mouse button, or gamepad button/axis) fired when the element is activated
+- **Text / Icon** — optional label or icon drawn inside the element
+- **Toggle switch** — when enabled, the element stays active after the finger lifts
+
+## Accessing the controls editor
+
+To edit the elements inside a profile, open **Input Controls** from the Winlator main menu, select a profile from the dropdown, then tap the **Controls Editor** button. This launches `ControlsEditorActivity`, a full-screen canvas where you can:
+
+- **Add** a new element using the `+` button, then choose its type and shape
+- **Move** elements by dragging them to any position
+- **Resize** elements using the scale control in the element properties panel
+- **Edit bindings** by tapping an element and selecting the desired keyboard, mouse, or gamepad binding
+- **Delete** an element by selecting it and tapping the remove button
+- **Preview** how the overlay looks while a game is running
+
+<Info>
+  The controls editor opens as a full-screen transparent canvas layered over your running Windows application, letting you design and preview the overlay in real time.
+</Info>
+
+## Creating a custom control profile
+
+<Steps>
+  <Step title="Open Input Controls">
+    From the Winlator home screen, tap the hamburger menu and select **Input Controls**.
+  </Step>
+  <Step title="Create a new profile">
+    Tap the **+** (Add Profile) button and enter a name for your profile. The profile is saved immediately as an empty `.icp` file.
+  </Step>
+  <Step title="Open the controls editor">
+    With your new profile selected in the dropdown, tap **Controls Editor**. The editor opens as a transparent overlay canvas.
+  </Step>
+  <Step title="Add control elements">
+    Tap the **+** button in the editor toolbar. Select an element type (Button, D-Pad, Stick, Trackpad, or Range Button) and a shape. The element appears at the center of the screen.
+  </Step>
+  <Step title="Position and size the element">
+    Drag the element to your preferred position. Use the scale slider in the properties panel to make it larger or smaller.
+  </Step>
+  <Step title="Assign bindings">
+    Tap the element to select it, then open its properties. Choose the keyboard key, mouse action, or gamepad button this element should send when touched.
+  </Step>
+  <Step title="Repeat for all needed controls">
+    Add as many elements as required — typically a D-pad or stick for movement, buttons for actions, and a trackpad or stick for camera control.
+  </Step>
+  <Step title="Save and assign to a shortcut">
+    The profile saves automatically. Go to your shortcut settings and set the **Controls Profile** field to your new profile so it activates whenever you launch that game.
+  </Step>
+</Steps>
+
+## Assigning a profile to a shortcut
+
+Profiles can be assigned per-shortcut so each game loads the right overlay automatically:
+
+1. On the Winlator home screen, long-press the shortcut (or tap the menu icon next to it).
+2. Select **Settings**.
+3. In the **Controls Profile** dropdown, choose the profile you want.
+4. Tap **OK** to save.
+
+The selected profile loads as soon as the game starts. You can change it at any time without affecting other shortcuts.
+
+## Importing and exporting profiles
+
+<Tabs>
+  <Tab title="Import from file">
+    1. In **Input Controls**, tap the **Import** button.
+    2. Select **Open file** from the popup menu.
+    3. Navigate to the `.icp` file using the system file picker and tap it.
+    4. The profile is added to your list (or replaces an existing profile with the same name).
+  </Tab>
+  <Tab title="Download from repository">
+    1. In **Input Controls**, tap the **Import** button.
+    2. Select **Download** from the popup menu.
+    3. Winlator fetches the list of available profiles from the official GitHub repository.
+    4. Select one or more profiles and confirm the download.
+  </Tab>
+  <Tab title="Export">
+    1. Select the profile you want to export from the dropdown.
+    2. Tap the **Export** button.
+    3. The `.icp` file is written to `Downloads/Winlator/profiles/<name>.icp`.
+    4. Share the file via your file manager, cloud storage, or messaging app.
+  </Tab>
+</Tabs>
+
+<Note>
+  Importing a profile with the same name as an existing one will replace the existing profile in place. Make a backup export first if you want to keep the original.
+</Note>
+
+## Overlay opacity
+
+The global overlay opacity setting controls how transparent the entire input controls layer appears during gameplay. Adjust the **Overlay Opacity** slider in the **Input Controls** screen. The setting applies to all profiles and is stored as a global app preference.

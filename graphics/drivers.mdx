@@ -1,0 +1,148 @@
+---
+title: "Graphics drivers"
+description: "Choose the right Mesa GPU driver for your Android hardware to get the best performance in Windows games and applications."
+---
+
+Winlator routes graphics through a layered stack: your Android GPU is exposed to Wine via a Mesa driver, which translates OpenGL or Vulkan calls from Windows applications into commands your hardware can execute.
+
+```
+Windows app
+    ↓  OpenGL / Direct3D / Vulkan calls
+Wine + DXVK/VKD3D wrapper
+    ↓  Vulkan / OpenGL
+Mesa driver (Turnip / VirGL / Zink)
+    ↓
+Android GPU (Adreno / Mali / Immortalis / …)
+```
+
+Three Mesa drivers are available. The default is **Turnip** (`DEFAULT_GRAPHICS_DRIVER = "turnip"`), which is the best choice for Qualcomm Adreno devices.
+
+## Available drivers
+
+<Tabs>
+  <Tab title="Turnip (default)">
+    Turnip is the open-source Vulkan driver for Qualcomm Adreno GPUs, developed as part of Mesa. It runs natively on the GPU, bypassing Android's proprietary graphics stack entirely, and delivers the highest performance of the three options.
+
+    **Best for:** Snapdragon devices (Adreno 6xx and later)
+
+    <Warning>
+      Turnip only works on Qualcomm Adreno GPUs. Attempting to use it on Mali, Immortalis, or other GPU families will cause the environment to fail to start.
+    </Warning>
+
+    Winlator automatically detects Adreno 6xx hardware using the `GPUInformation.isAdreno6xx()` method and defaults to Turnip for those devices. On unrecognised hardware, fall back to VirGL.
+
+    **Key characteristics:**
+    - Native Vulkan 1.3 support
+    - Lowest driver overhead
+    - Required for DXVK and VKD3D at full performance
+    - Installable versions: `turnip-24.1.0`, `turnip-25.0.0` (available via the in-app component manager)
+
+    **Useful environment variables for Turnip:**
+
+    | Variable | Default | Effect |
+    |---|---|---|
+    | `TU_DEBUG` | `noconform` | Disables conformance tests, improves performance |
+    | `MESA_VK_WSI_PRESENT_MODE` | `mailbox` | Sets the Vulkan swap chain present mode |
+    | `MESA_SHADER_CACHE_DISABLE` | `false` | Enables the Mesa shader cache |
+    | `MESA_SHADER_CACHE_MAX_SIZE` | `512MB` | Maximum size of the shader disk cache |
+  </Tab>
+
+  <Tab title="VirGL">
+    VirGL (Virtio GPU Renderer) is a virtual GPU driver. Wine renders into a virtual Virtio GPU, and the `VirGLRendererComponent` translates those commands into OpenGL calls on the host Android OpenGL ES context. It works with a broad range of GPU hardware because it only requires OpenGL ES 3.x support from the Android driver.
+
+    **Best for:** Non-Adreno GPUs (Mali, Immortalis, PowerVR, etc.) or when Turnip is unavailable
+
+    **Key characteristics:**
+    - Works on any GPU with OpenGL ES 3.x support
+    - Lower performance than Turnip due to the virtualisation overhead
+    - Implemented via the native `virglrenderer` library (`System.loadLibrary("virglrenderer")`)
+    - Communicates over a Unix socket managed by `VirGLRendererComponent`
+    - Uses a shared EGL context between the renderer and the Wine guest
+
+    **Useful environment variables for VirGL:**
+
+    | Variable | Default | Effect |
+    |---|---|---|
+    | `MESA_SHADER_CACHE_DISABLE` | `false` | Enables the Mesa shader cache |
+    | `mesa_glthread` | `true` | Offloads GL calls to a worker thread |
+  </Tab>
+
+  <Tab title="Zink">
+    Zink is a Mesa driver that implements OpenGL on top of Vulkan. It acts as a bridge: Wine makes OpenGL calls, Zink translates them to Vulkan, and the Vulkan calls are handled by the device's Vulkan driver.
+
+    **Best for:** Vulkan-capable non-Adreno GPUs where VirGL performance is insufficient
+
+    **Key characteristics:**
+    - Requires Vulkan support from the Android GPU driver
+    - More compatible with OpenGL features than VirGL
+    - Higher overhead than Turnip (two translation layers: OpenGL → Vulkan → GPU)
+    - Shares Mesa environment variables with Turnip
+
+    **Useful environment variables for Zink:**
+
+    | Variable | Default | Effect |
+    |---|---|---|
+    | `ZINK_DESCRIPTORS` | `lazy` | Defers descriptor updates for better throughput |
+    | `ZINK_DEBUG` | `compact` | Enables compact resource layout, reduces memory usage |
+    | `MESA_VK_WSI_PRESENT_MODE` | `mailbox` | Sets the Vulkan present mode |
+  </Tab>
+</Tabs>
+
+## Choosing a driver
+
+<CardGroup cols={2}>
+  <Card title="Qualcomm Snapdragon" icon="bolt">
+    Use **Turnip**. It provides native Vulkan and delivers the best gaming performance on Adreno GPUs.
+  </Card>
+  <Card title="ARM Mali / Immortalis" icon="microchip">
+    Use **VirGL** first. If performance is poor and your GPU supports Vulkan, try **Zink**.
+  </Card>
+  <Card title="Other / unknown GPU" icon="circle-question">
+    Start with **VirGL** for the broadest compatibility. Switch to Zink only if your GPU has Vulkan support.
+  </Card>
+  <Card title="Legacy / old games" icon="clock-rotate-left">
+    Any driver works. Pair with WineD3D or CNC DDraw and add `MESA_EXTENSION_MAX_YEAR=2003` to restrict Mesa extensions to those available before 2003.
+  </Card>
+</CardGroup>
+
+## Default environment variables
+
+Every new container is created with these environment variables pre-configured (`Container.DEFAULT_ENV_VARS`):
+
+```text
+ZINK_DESCRIPTORS=lazy
+ZINK_DEBUG=compact
+MESA_SHADER_CACHE_DISABLE=false
+MESA_SHADER_CACHE_MAX_SIZE=512MB
+mesa_glthread=true
+WINEESYNC=1
+MESA_VK_WSI_PRESENT_MODE=mailbox
+TU_DEBUG=noconform
+```
+
+You can edit these in the container's **Environment variables** field. Variables that do not apply to the selected driver are silently ignored by Mesa.
+
+<Tip>
+  If a game was made before 2004, add `MESA_EXTENSION_MAX_YEAR=2003` to the container's environment variables. This prevents Mesa from advertising extensions that did not exist when the game was written, which can resolve compatibility issues with older OpenGL-based games.
+</Tip>
+
+## FPS counter
+
+Enable the **Show FPS** toggle in the container settings to display a real-time frames-per-second overlay while a Windows application is running. This uses the `showFPS` field on the container object.
+
+## Changing the driver
+
+<Steps>
+  <Step title="Open container settings">
+    Long-press the container on the main screen and select **Edit**.
+  </Step>
+  <Step title="Select the Graphics driver">
+    Tap the **Graphics driver** field and choose Turnip, VirGL, or Zink.
+  </Step>
+  <Step title="Adjust environment variables">
+    Review the **Environment variables** field. Remove driver-specific variables that no longer apply (for example, remove `TU_DEBUG` when switching away from Turnip).
+  </Step>
+  <Step title="Save and restart">
+    Save the container and relaunch your application. Shader caches may need to be rebuilt, so expect slower first-launch performance after switching drivers.
+  </Step>
+</Steps>

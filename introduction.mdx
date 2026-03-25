@@ -1,0 +1,93 @@
+---
+title: "Introduction"
+description: "Run Windows applications and games on Android with Wine and Box86/Box64"
+---
+
+<img
+  src="https://media.brand.dev/e714a459-5eac-4ea5-896e-1ff1701faba0.png"
+  alt="Winlator"
+  style={{ maxWidth: "300px", marginBottom: "24px" }}
+/>
+
+## What is Winlator?
+
+Winlator is an Android application that lets you run Windows (x86\_64) applications and games on ARM-based Android devices. It combines several powerful open-source technologies to achieve this:
+
+- **Wine** — translates Windows system calls into Linux equivalents
+- **Box86/Box64** — translates x86/x86\_64 instructions to ARM instructions
+- **Mesa GPU drivers** — provides Vulkan and OpenGL support via Turnip, Zink, and VirGL
+- **DXVK / VKD3D** — translates Direct3D calls to Vulkan for better performance
+- **PRoot** — runs the Linux environment without root access
+
+Together, these components create a compatibility layer that enables a wide range of Windows software to run on Android smartphones and tablets.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Container management" icon="box">
+    Isolate each Windows environment in its own container with independent settings, Wine prefix, and drive mappings.
+  </Card>
+  <Card title="Graphics translation" icon="display">
+    Choose from Turnip (Vulkan), VirGL, or Zink drivers, and pair with DXVK, VKD3D, or WineD3D for DirectX games.
+  </Card>
+  <Card title="Box86/Box64 presets" icon="sliders">
+    Switch between Stability, Compatibility, Intermediate, and Performance presets to tune the x86 translation layer.
+  </Card>
+  <Card title="Custom input controls" icon="gamepad">
+    Design on-screen control overlays and bind physical gamepad buttons to Windows input events.
+  </Card>
+  <Card title="Per-game shortcuts" icon="bookmark">
+    Create shortcuts with individual settings per game — screen size, graphics driver, Box64 preset, and more.
+  </Card>
+  <Card title="Virtual drives" icon="hard-drive">
+    Map Android storage directories to Windows drive letters (D:, E:, etc.) for easy file access.
+  </Card>
+</CardGroup>
+
+## Supported hardware
+
+Winlator targets Android devices with **ARM64 (arm64-v8a)** processors. For the best graphics performance, a device with an **Adreno GPU** is recommended, as the Turnip Vulkan driver is specifically designed for Adreno hardware.
+
+<Info>
+Winlator requires Android 8.0 (API level 26) or higher.
+</Info>
+
+## Technology stack
+
+| Component | Purpose |
+|---|---|
+| Wine 9.2 | Windows API compatibility layer |
+| Box86 / Box64 | x86 → ARM instruction translation |
+| Ubuntu Focal RootFS | Linux userland base |
+| Mesa (Turnip, Zink, VirGL) | GPU drivers |
+| DXVK | Direct3D 9/10/11 → Vulkan |
+| VKD3D | Direct3D 12 → Vulkan |
+| D8VK | Direct3D 8 → Vulkan |
+| CNC DDraw | DirectDraw → OpenGL (for old games) |
+| PRoot | Rootless Linux container |
+| ALSA | Audio subsystem |
+
+## Getting started
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Download the APK and get Winlator installed on your device.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Create your first container and launch a Windows application in minutes.
+  </Card>
+</CardGroup>
+
+## Credits
+
+Winlator is built on the shoulders of many open-source projects. Special thanks to:
+
+- [Wine](https://www.winehq.org/) — the core Windows compatibility layer
+- [ptitSeb](https://github.com/ptitSeb) — author of Box86 and Box64
+- [Mesa](https://www.mesa3d.org/) — Turnip, Zink, and VirGL GPU drivers
+- [DXVK](https://github.com/doitsujin/dxvk) — Direct3D to Vulkan translation
+- [VKD3D](https://gitlab.winehq.org/wine/vkd3d) — Direct3D 12 to Vulkan
+- [D8VK](https://github.com/AlpyneDreams/d8vk) — Direct3D 8 to Vulkan
+- [CNC DDraw](https://github.com/FunkyFr3sh/cnc-ddraw) — legacy DirectDraw support
+- [Termux Pacman](https://github.com/termux-pacman/glibc-packages) — GLIBC patches
+- [PRoot](https://proot-me.github.io/) — rootless container execution

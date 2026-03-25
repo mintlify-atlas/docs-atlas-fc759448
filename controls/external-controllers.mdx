@@ -1,0 +1,155 @@
+---
+title: "External controllers"
+description: "Connect a physical Bluetooth or USB gamepad to Winlator and configure per-button bindings so every physical input maps to the correct Windows event."
+---
+
+Winlator supports physical gamepads connected via Bluetooth or USB. Once a controller is detected by Android, Winlator can bind each of its physical buttons and analog axes to keyboard keys, mouse actions, or virtual gamepad inputs that Wine then forwards to the running Windows application.
+
+## How external controllers work
+
+Winlator uses Android's standard `InputDevice` API to discover gamepads. Any device that exposes the `SOURCE_GAMEPAD` or `SOURCE_JOYSTICK` source flags is treated as a compatible controller — this covers most Bluetooth and USB HID gamepads including Xbox, PlayStation (via third-party drivers), and generic Android controllers.
+
+Each controller is identified by its **descriptor** string (a stable hardware ID provided by Android), not by a transient device ID. This means bindings you configure survive reconnects and reboots.
+
+<Tip>
+  Many games work correctly with the default XInput-style mapping without any additional configuration. Try launching a game first before setting up custom bindings.
+</Tip>
+
+## Key components
+
+### ExternalController
+
+`ExternalController` represents a single connected physical gamepad. It stores:
+
+- **id** — the Android `InputDevice` descriptor (stable hardware identifier)
+- **name** — the human-readable device name shown in the UI
+- **controllerBindings** — the list of `ExternalControllerBinding` entries configured for this controller
+- **state** — a `GamepadState` snapshot updated in real time from motion and key events
+
+The class also exposes static helpers (`getControllers()`, `getController(id)`) that enumerate all currently connected game controllers from the Android device list.
+
+### ExternalControllerBinding
+
+An `ExternalControllerBinding` maps one physical input — a button key code or an analog axis direction — to a `Binding` target (a Windows input event). Each binding has two fields:
+
+| Field | Description |
+|-------|-------------|
+| `keyCode` | The physical input source. Positive values are Android `KeyEvent` key codes (e.g. `KEYCODE_BUTTON_A`). Negative values represent axis directions (`AXIS_X+`, `AXIS_Y-`, etc.). |
+| `binding` | The `Binding` enum value that Winlator sends to Wine when this input is active. |
+
+Analog axes are split by direction so you can bind, for example, left-stick-up to `W` and left-stick-down to `S`:
+
+| Axis code constant | Meaning |
+|-------------------|---------|
+| `AXIS_X_NEGATIVE` / `AXIS_X_POSITIVE` | Left stick horizontal |
+| `AXIS_Y_NEGATIVE` / `AXIS_Y_POSITIVE` | Left stick vertical |
+| `AXIS_Z_NEGATIVE` / `AXIS_Z_POSITIVE` | Right stick horizontal |
+| `AXIS_RZ_NEGATIVE` / `AXIS_RZ_POSITIVE` | Right stick vertical |
+
+### Binding types
+
+The `Binding` enum defines every possible Windows input event that can be targeted. Bindings fall into three categories:
+
+<Tabs>
+  <Tab title="Keyboard">
+    Full keyboard coverage including:
+    - Arrow keys (Up, Down, Left, Right)
+    - Letter keys A–Z and number keys 0–9
+    - Function keys F1–F12
+    - Numpad keys NP0–NP9
+    - Modifier keys: L/R Shift, L/R Ctrl, L/R Alt
+    - Special keys: Enter, Escape, Backspace, Delete, Tab, Space, Home, Page Up, Page Down, Print Screen, Caps Lock, Num Lock
+    - Punctuation: `[`, `]`, `\`, `/`, `;`, `,`, `.`, `'`, `-`, `+`
+  </Tab>
+  <Tab title="Mouse">
+    - `MOUSE_LEFT_BUTTON` — left click
+    - `MOUSE_MIDDLE_BUTTON` — middle click
+    - `MOUSE_RIGHT_BUTTON` — right click
+    - `MOUSE_MOVE_LEFT` / `MOUSE_MOVE_RIGHT` / `MOUSE_MOVE_UP` / `MOUSE_MOVE_DOWN` — cursor movement
+    - `MOUSE_SCROLL_UP` / `MOUSE_SCROLL_DOWN` — scroll wheel
+  </Tab>
+  <Tab title="Gamepad">
+    Virtual XInput-style gamepad buttons and axes passed directly to the Windows application:
+    - Face buttons: A, B, X, Y
+    - Shoulder buttons: L1, R1, L2, R2
+    - Stick clicks: L3, R3
+    - Menu buttons: Select, Start
+    - Left stick: up, right, down, left
+    - Right stick: up, right, down, left
+    - D-pad: up, right, down, left
+  </Tab>
+</Tabs>
+
+### GamepadState
+
+`GamepadState` is a lightweight snapshot of a controller's current state, updated from Android motion and key events:
+
+| Field | Description |
+|-------|-------------|
+| `thumbLX` / `thumbLY` | Left analog stick axes, range –1.0 to 1.0 |
+| `thumbRX` / `thumbRY` | Right analog stick axes, range –1.0 to 1.0 |
+| `dpad[4]` | Boolean array for D-pad directions (up, right, down, left) |
+| `buttons` | Bitmask of currently pressed face/shoulder/menu buttons |
+
+The state is serialized into a compact binary format (`writeTo`) and forwarded to Wine's virtual gamepad driver. Diagonal D-pad presses are encoded as a POV hat value (0–7) following standard HID conventions.
+
+## Setting up an external controller
+
+<Steps>
+  <Step title="Connect your gamepad">
+    Pair your controller via Android's Bluetooth settings, or plug it in via USB. Verify Android recognizes it as a gamepad — the controller should appear under **Settings → Connected devices**.
+  </Step>
+  <Step title="Open a controls profile">
+    In Winlator, navigate to **Input Controls** and select (or create) the profile you want to associate with your controller. Controller bindings are stored per-profile.
+  </Step>
+  <Step title="Tap the controller in the list">
+    Any connected gamepad is shown in the **External Controllers** section of the Input Controls screen. Tap your controller's name to open the bindings configuration screen (`ExternalControllerBindingsActivity`).
+  </Step>
+  <Step title="Record button presses">
+    Press any button or move any axis on your physical controller. Winlator detects the input automatically and adds a new binding entry for it. Each entry shows the physical input name (e.g. `BUTTON A`, `AXIS X+`) and a pair of dropdowns to set the **binding type** (Keyboard, Mouse, or Gamepad) and the **target binding**.
+  </Step>
+  <Step title="Assign target bindings">
+    For each recorded input, use the **Binding Type** dropdown to choose the category, then select the specific key or action from the **Binding** dropdown. Changes are saved to the profile immediately.
+  </Step>
+  <Step title="Remove unwanted entries">
+    Tap the remove button next to any binding you no longer need. The controller entry is removed from the profile entirely if all its bindings are deleted.
+  </Step>
+</Steps>
+
+<Note>
+  Controller bindings are stored inside the controls profile (`.icp` file), not globally. If you assign the same physical controller to multiple profiles, each profile can have different bindings for it.
+</Note>
+
+## Supported button indices
+
+The following physical buttons are recognized by Winlator's `ExternalController`:
+
+| Index | Button | Android KeyCode |
+|-------|--------|-----------------|
+| 0 | A | `KEYCODE_BUTTON_A` |
+| 1 | B | `KEYCODE_BUTTON_B` |
+| 2 | X | `KEYCODE_BUTTON_X` |
+| 3 | Y | `KEYCODE_BUTTON_Y` |
+| 4 | L1 | `KEYCODE_BUTTON_L1` |
+| 5 | R1 | `KEYCODE_BUTTON_R1` |
+| 6 | Select | `KEYCODE_BUTTON_SELECT` |
+| 7 | Start | `KEYCODE_BUTTON_START` |
+| 8 | L3 (left stick click) | `KEYCODE_BUTTON_THUMBL` |
+| 9 | R3 (right stick click) | `KEYCODE_BUTTON_THUMBR` |
+| 10 | L2 (left trigger) | `KEYCODE_BUTTON_L2` |
+| 11 | R2 (right trigger) | `KEYCODE_BUTTON_R2` |
+
+D-pad inputs are handled separately through `KEYCODE_DPAD_UP/DOWN/LEFT/RIGHT` or via `AXIS_HAT_X`/`AXIS_HAT_Y` motion events.
+
+## Controller compatibility
+
+Winlator relies entirely on Android's standard gamepad APIs. A controller works if:
+
+- Android classifies it as `SOURCE_GAMEPAD` or `SOURCE_JOYSTICK`
+- The controller is not a virtual device
+
+Most modern Bluetooth controllers (Xbox Series, PS4/PS5 via compatible drivers, 8BitDo, Razer Kishi, etc.) and USB OTG gamepads meet these criteria. Controllers that require proprietary Android apps or non-standard APIs may not be detected.
+
+<Warning>
+  PlayStation controllers connected via Bluetooth may require a third-party driver app (such as DualShock/DualSense tools) to be recognized as a standard Android gamepad before Winlator can see them.
+</Warning>

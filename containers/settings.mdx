@@ -1,0 +1,234 @@
+---
+title: "Container settings"
+description: "Reference for every configurable setting in a Winlator container, organized by tab."
+---
+
+To edit a container's settings, tap its menu icon in the Containers list and choose **Edit**. Settings are organized across five tabs: **Wine Configuration**, **Win Components**, **Env Vars**, **Drives**, and **Advanced**.
+
+<Tabs>
+  <Tab title="General">
+    ## Name
+
+    The display name for the container. Defaults to `Container-{id}` on creation. You can rename a container at any time without affecting the Wine prefix or installed applications.
+
+    ## Screen size
+
+    The virtual display resolution that Windows applications see. Expressed as `WIDTHxHEIGHT` (for example, `1280x720`).
+
+    **Default:** `1280x720`
+
+    Select **Custom** in the dropdown to enter an arbitrary resolution. Both dimensions must be even numbers. The resolution does not need to match your physical screen — applications render to a virtual framebuffer at this size.
+
+    Common values:
+
+    | Resolution | Notes |
+    |---|---|
+    | `800x600` | Older titles with fixed resolutions |
+    | `1024x768` | 4:3 aspect ratio classic games |
+    | `1280x720` | Default; good for most modern titles |
+    | `1920x1080` | High-detail rendering; heavier GPU load |
+
+    ## Audio driver
+
+    Controls how Wine outputs audio to the Android system.
+
+    **Default:** `alsa`
+
+    | Driver | Description |
+    |---|---|
+    | `alsa` | ALSA emulation layer (recommended) |
+    | `pulseaudio` | PulseAudio backend |
+
+    <Tip>
+      If you experience audio crackling or no sound, try switching between ALSA and PulseAudio.
+    </Tip>
+  </Tab>
+
+  <Tab title="Graphics">
+    ## Graphics driver
+
+    Selects the GPU driver stack used for rendering.
+
+    **Default:** `turnip`
+
+    | Driver | Description |
+    |---|---|
+    | `turnip` | Open-source Adreno Vulkan driver. Best performance on Qualcomm GPUs. Required for DXVK and VKD3D. |
+    | `virgl` | Software-based OpenGL renderer. Works on all GPUs but is significantly slower. |
+
+    <Note>
+      Turnip requires a Qualcomm Adreno GPU. On other hardware, use VirGL.
+    </Note>
+
+    ## DX wrapper
+
+    Translates Windows DirectX API calls to the underlying graphics API.
+
+    **Default:** `dxvk`
+
+    | Wrapper | Translates | Requires |
+    |---|---|---|
+    | `dxvk` | DirectX 9 / 10 / 11 → Vulkan | Turnip |
+    | `vkd3d` | DirectX 12 → Vulkan | Turnip |
+    | `wined3d` | DirectX → OpenGL (Wine built-in) | Any driver |
+
+    Switching the graphics driver to VirGL automatically removes DXVK and VKD3D from the dropdown.
+
+    ## DX wrapper config
+
+    Additional configuration passed to the selected DX wrapper. Appears as a **Configure** button next to the DX Wrapper selector when DXVK is chosen.
+
+    The DXVK config dialog lets you set options such as:
+    - Frame rate limit
+    - HUD display elements (FPS counter, GPU load, etc.)
+    - DXVK state cache behavior
+
+    This field is stored as a raw config string and passed to DXVK at runtime.
+
+    ## Show FPS
+
+    Overlays a frames-per-second counter on the display during gameplay. Disabled by default.
+
+    ## Wine configuration (registry settings)
+
+    The **Wine Configuration** tab also exposes registry-backed settings:
+
+    | Setting | Description | Default |
+    |---|---|---|
+    | CSMT | Command Stream Multi-Threading — enables multi-threaded GPU command submission | Enabled |
+    | GPU name | Spoofs a specific GPU vendor/device ID to the application | Adreno 660 |
+    | Offscreen rendering mode | `FBO` (recommended) or `Backbuffer` | FBO |
+    | Strict shader math | Forces strict IEEE 754 shader math | Enabled |
+    | Video memory size | Amount of VRAM reported to applications (MB) | 2048 |
+    | Mouse warp override | Controls how Wine handles cursor confinement | Disabled |
+
+    ## Desktop theme
+
+    Sets the visual appearance of the Wine desktop environment.
+
+    **Theme options:**
+
+    | Theme | Description |
+    |---|---|
+    | `LIGHT` | Light window chrome, gray UI elements (default) |
+    | `DARK` | Dark window chrome and backgrounds |
+
+    **Background type:**
+
+    | Type | Description |
+    |---|---|
+    | `IMAGE` | Uses the built-in Winlator wallpaper (default) or a custom image you provide |
+    | `COLOR` | Fills the desktop with a solid color picked via color picker |
+
+    The default desktop theme is `LIGHT,IMAGE,#0277bd` — Light theme with the Winlator wallpaper.
+  </Tab>
+
+  <Tab title="Advanced">
+    ## Wine version
+
+    Selects which Wine build the container uses. Defaults to the built-in **Wine 9.2 (Custom)** build. If you have installed additional Wine versions through Winlator's Wine manager, they appear here.
+
+    <Warning>
+      Changing the Wine version on an existing container replaces the DLL layout and system files in the container. Back up important data before switching, as this regenerates parts of the Wine prefix.
+    </Warning>
+
+    ## WoW64 mode
+
+    When enabled, a 64-bit Wine process acts as a host for 32-bit Windows application processes. This allows running both 32-bit and 64-bit applications in the same Wine prefix without needing a separate 32-bit Wine installation.
+
+    **Default:** enabled
+
+    Disable WoW64 only when:
+    - You are using a standalone 32-bit Wine build
+    - A specific application is incompatible with the WoW64 subsystem
+
+    <Note>
+      WoW64 mode is only available with the built-in Wine (Custom) version. Selecting an alternate Wine build disables this option automatically.
+    </Note>
+
+    ## Startup selection
+
+    Controls which background Windows services are started when the container launches.
+
+    | Value | Name | Description |
+    |---|---|---|
+    | `0` | Normal | Full set of standard Windows background services |
+    | `1` | Essential | Minimum services needed for most games (default) |
+    | `2` | Aggressive | Bare minimum; fastest startup, may break some apps |
+
+    **Default:** `1` (Essential)
+
+    Use **Normal** if an application requires services such as the Windows audio engine or shell extensions at startup. Use **Aggressive** if you want the fastest possible container start time and are running a self-contained app with no service dependencies.
+
+    ## Box86 preset
+
+    Selects the configuration preset for the [Box86](https://github.com/ptitSeb/box86) x86 JIT emulator, used to run 32-bit Windows application code on ARM.
+
+    **Default:** `compatibility`
+
+    Presets trade off between emulation accuracy and raw speed. Higher-performance presets may cause instability in some titles.
+
+    ## Box64 preset
+
+    Selects the configuration preset for the [Box64](https://github.com/ptitSeb/box64) x86_64 JIT emulator, used to run 64-bit Windows application code on ARM.
+
+    **Default:** `compatibility`
+
+    ## CPU list
+
+    A comma-separated list of CPU core indices that the container's Wine processes are allowed to run on. When left empty, all available cores are used.
+
+    **Example:** `0,1,2,3` — restrict to the first four cores
+
+    This maps to Android's CPU affinity mask. On a device with 8 cores (indices 0–7), specifying `4,5,6,7` pins Wine to the big cores on a big.LITTLE device.
+
+    <Tip>
+      Pinning Wine to high-performance cores can improve frame pacing on big.LITTLE SoCs, but may increase power consumption and thermal load.
+    </Tip>
+
+    ## CPU list (WoW64)
+
+    A separate CPU affinity list applied specifically to WoW64 (32-bit) child processes when WoW64 mode is active.
+
+    **Default behavior:** uses the upper half of available cores (for example, cores 4–7 on an 8-core device).
+
+    Keeping WoW64 processes on a dedicated core set prevents them from competing with the main 64-bit Wine process.
+
+    ## Win components
+
+    Fine-grained control over which Windows compatibility components Wine installs into the prefix. Each component can be toggled individually.
+
+    **Default enabled components:**
+
+    | Component | Default | Description |
+    |---|---|---|
+    | `direct3d` | On | Direct3D runtime support |
+    | `directsound` | On | DirectSound audio |
+    | `directmusic` | Off | DirectMusic MIDI playback |
+    | `directshow` | Off | DirectShow media framework |
+    | `directplay` | Off | DirectPlay network gaming |
+    | `vcrun2010` | On | Visual C++ 2010 runtime |
+    | `wmdecoder` | On | Windows Media decoder |
+
+    Disable components you do not need to reduce prefix initialization time. Enable `directmusic` or `directplay` only if a specific game requires them.
+
+    ## Environment variables
+
+    A list of key-value environment variables injected into the Wine process at startup. These are set in the Linux environment that Wine runs in, making them available to both Wine internals and Windows applications.
+
+    **Default variables:**
+
+    ```bash
+    ZINK_DESCRIPTORS=lazy
+    ZINK_DEBUG=compact
+    MESA_SHADER_CACHE_DISABLE=false
+    MESA_SHADER_CACHE_MAX_SIZE=512MB
+    mesa_glthread=true
+    WINEESYNC=1
+    MESA_VK_WSI_PRESENT_MODE=mailbox
+    TU_DEBUG=noconform
+    ```
+
+    Tap **Add** to append a new variable. Tap an existing variable row to edit or delete it. These defaults are merged with any values from older container versions during migration.
+  </Tab>
+</Tabs>

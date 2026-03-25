@@ -1,0 +1,117 @@
+---
+title: "Creating a container"
+description: "Step-by-step guide to creating, configuring, importing, and exporting Winlator containers."
+---
+
+Each container is a self-contained Windows environment. Creating one extracts a fresh Wine prefix from a built-in template and writes your chosen settings to a `.container` config file.
+
+<Info>
+  Container creation extracts several hundred megabytes of data. Make sure you have adequate free storage before starting.
+</Info>
+
+## Create a new container
+
+<Steps>
+  <Step title="Open the Containers screen">
+    Launch Winlator and tap **Containers** in the bottom navigation bar. Then tap the **+** button in the top-right corner to open the new container form.
+  </Step>
+
+  <Step title="Set a name">
+    Enter a descriptive name in the **Name** field. Winlator pre-fills it as `Container-{id}` (for example, `Container-1` for your first container). You can change this at any time later by editing the container.
+  </Step>
+
+  <Step title="Choose a screen resolution">
+    Select the virtual display size from the **Screen Size** dropdown. This controls the resolution Windows applications see — it does not have to match your device's physical screen.
+
+    Common options:
+
+    | Resolution | Use case |
+    |---|---|
+    | 800×600 | Older games with fixed low-res support |
+    | 1024×768 | Classic PC games |
+    | **1280×720** | Default — good balance for most apps |
+    | 1920×1080 | Higher-fidelity rendering (more GPU load) |
+
+    Select **Custom** to enter any width × height pair. Both values must be even numbers.
+  </Step>
+
+  <Step title="Select a graphics driver">
+    The **Graphics Driver** controls how OpenGL/Vulkan commands are translated to your device's GPU.
+
+    - **Turnip** (default) — open-source Adreno Vulkan driver; best performance on Adreno GPUs, required for DXVK and VKD3D
+    - **VirGL** — Virtio GPU renderer using OpenGL ES; works on all devices but is slower
+    - **Zink** — OpenGL-over-Vulkan bridge; for Vulkan-capable non-Adreno GPUs
+
+    See the [graphics drivers](/graphics/drivers) page for a full comparison.
+  </Step>
+
+  <Step title="Choose a DX wrapper">
+    The **DX Wrapper** translates Windows DirectX calls to Vulkan or OpenGL.
+
+    - **DXVK** (default) — DirectX 9/10/11 → Vulkan; best performance with Turnip
+    - **VKD3D** — DirectX 12 → Vulkan; for DX12 titles
+    - **WineD3D** — DirectX → OpenGL via Wine's built-in layer; most compatible but slowest
+
+    <Note>
+      DXVK and VKD3D are only available when the graphics driver is set to **Turnip**. If you switch to VirGL, only WineD3D appears.
+    </Note>
+
+    When DXVK is selected, a **Configure** button appears so you can adjust DXVK-specific options such as frame rate limits and HUD settings.
+  </Step>
+
+  <Step title="Configure WoW64 mode">
+    **WoW64 mode** lets a 64-bit Wine installation run 32-bit Windows applications alongside 64-bit ones. It is enabled by default and is the recommended setting for most games.
+
+    Disable WoW64 only if you are using a standalone 32-bit Wine build or if a specific application requires a pure 64-bit environment.
+
+    <Note>
+      WoW64 mode is only available with the built-in Wine (Custom) version. If you select an alternate Wine build, this option is automatically disabled.
+    </Note>
+  </Step>
+
+  <Step title="Set the startup selection">
+    **Startup Selection** controls which background Windows services are launched when the container starts:
+
+    | Value | Name | Description |
+    |---|---|---|
+    | `0` | Normal | Starts all standard Windows services |
+    | `1` | Essential | Starts only the minimum required services (default) |
+    | `2` | Aggressive | Starts only the absolute minimum; fastest boot, least compatible |
+
+    **Essential** is recommended for most games. Use **Normal** if an application requires services like the Windows audio service or task scheduler at startup.
+  </Step>
+
+  <Step title="Tap Create">
+    Tap the **Create** (checkmark) button. Winlator extracts the container pattern — this can take 10–30 seconds. A progress dialog is shown while the Wine prefix is being set up.
+
+    Once complete, the new container appears in the Containers list.
+  </Step>
+</Steps>
+
+## Duplicate a container
+
+To copy an existing container (including all installed software and settings), long-press or tap the menu icon on any container in the list, then choose **Duplicate**. The copy gets a new ID and its name is appended with " (Copy)".
+
+<Warning>
+  Duplicating a container copies the entire Wine prefix directory. For large containers with many installed games, this can use gigabytes of additional storage.
+</Warning>
+
+## Delete a container
+
+Tap the menu icon on a container and choose **Remove**. You will be asked to confirm. Deletion permanently removes the container directory and all installed software inside it.
+
+<Warning>
+  Container deletion is irreversible. Back up any save files or important data before removing a container.
+</Warning>
+
+## Storage location
+
+<Info>
+  Containers are stored inside Winlator's private app storage under the path:
+
+  ```
+  /data/data/com.winlator/files/imagefs/home/xuser-{id}/
+  ```
+
+  This location is not accessible without root unless you use Winlator's built-in export feature.
+</Info>

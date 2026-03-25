@@ -1,0 +1,89 @@
+---
+title: "Containers overview"
+description: "Understand what containers are in Winlator, how they differ from shortcuts, and what you can configure inside them."
+---
+
+A **container** is an isolated Windows environment managed by Winlator. Each container has its own Wine prefix, virtual C: drive, settings, and drive mappings. Running apps in separate containers keeps them from interfering with each other — different games can use different graphics drivers, Wine component sets, or emulation presets without any conflict.
+
+Containers are created and managed by the `ContainerManager`, which stores each container as a directory on the device filesystem under `imagefs/home/xuser-{id}/`. The container's configuration is saved as a JSON file (`.container`) inside its root directory.
+
+## Containers vs shortcuts
+
+A **shortcut** is a launcher for a specific `.exe` inside a container. It stores the path to the executable (and optional per-shortcut overrides) but shares the container's Wine prefix and settings. One container can have many shortcuts; removing a shortcut does not affect the container or its installed software.
+
+| | Container | Shortcut |
+|---|---|---|
+| Has own Wine prefix | Yes | No — uses parent container's |
+| Has own settings | Yes | Can override some |
+| Stores installed software | Yes | No |
+| Deleted independently | Yes | Yes |
+
+## Key properties
+
+Every container exposes the following properties:
+
+| Property | Default | Description |
+|---|---|---|
+| `id` | Auto-assigned | Unique numeric identifier |
+| `name` | `Container-{id}` | Display name |
+| `screenSize` | `1280x720` | Virtual display resolution |
+| `graphicsDriver` | `turnip` | GPU driver used for rendering |
+| `dxwrapper` | `dxvk` | DirectX translation layer |
+| `audioDriver` | `alsa` | Audio backend |
+| `wincomponents` | See below | Enabled Windows compatibility components |
+| `drives` | D: Downloads, E: internal storage | Custom drive letter mappings |
+| `wineVersion` | Wine 9.2 (Custom) | Which Wine build to use |
+| `box86Preset` | `compatibility` | Box86 JIT emulator preset |
+| `box64Preset` | `compatibility` | Box64 JIT emulator preset |
+| `startupSelection` | `1` (Essential) | Which background services to launch |
+| `wow64Mode` | `true` | Allow 32-bit apps in 64-bit Wine |
+
+Default Windows component set:
+```
+direct3d=1, directsound=1, directmusic=0,
+directshow=0, directplay=0, vcrun2010=1, wmdecoder=1
+```
+
+## Wine prefix location
+
+Each container's Wine prefix is located at:
+
+```
+<container root>/.wine/drive_c/
+```
+
+This is the virtual C: drive. Windows registry files (`system.reg`, `user.reg`) and installed application data live here. The container root itself is stored under Winlator's internal home directory, named `xuser-{id}` (for example, `xuser-1` for the first container).
+
+## ContainerManager responsibilities
+
+The `ContainerManager` class handles the full lifecycle of containers:
+
+- **Create** — extracts a container pattern (Wine prefix template) and writes initial config
+- **List** — scans the home directory and loads all `xuser-{id}` subdirectories
+- **Duplicate** — deep-copies a container directory and all its settings to a new ID
+- **Delete** — removes the container directory and its entry from the in-memory list
+- **Activate** — creates a symlink so the currently active container is accessible at the standard path
+- **Load shortcuts** — scans each container's Desktop directory for `.desktop` launcher files
+
+## What you can configure
+
+<CardGroup cols={2}>
+  <Card title="Graphics" icon="display" href="/containers/settings">
+    Choose between Turnip, VirGL, and other GPU drivers. Select a DirectX wrapper (DXVK, VKD3D, or WineD3D) and tune its config.
+  </Card>
+  <Card title="Audio" icon="volume-2" href="/containers/settings">
+    Select the audio driver (ALSA or PulseAudio) for sound playback in Windows applications.
+  </Card>
+  <Card title="Drive mappings" icon="hard-drive" href="/containers/drives">
+    Map Android directories to Windows drive letters so games and apps can access your files.
+  </Card>
+  <Card title="CPU & emulation" icon="cpu" href="/containers/settings">
+    Pin the container to specific CPU cores and choose Box86/Box64 JIT presets to balance compatibility and performance.
+  </Card>
+  <Card title="Wine components" icon="puzzle" href="/containers/settings">
+    Enable or disable individual DirectX and runtime components (Direct3D, DirectSound, vcrun2010, and more).
+  </Card>
+  <Card title="Environment variables" icon="terminal" href="/containers/settings">
+    Set Mesa, Zink, WINE, and custom environment variables that apply every time the container starts.
+  </Card>
+</CardGroup>

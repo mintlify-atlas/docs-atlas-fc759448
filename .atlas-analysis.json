@@ -1,0 +1,87 @@
+{
+  "projectType": "saas",
+  "projectName": "Winlator",
+  "projectDescription": "An Android application that runs Windows (x86_64) applications and games on ARM-based Android devices using Wine, Box86/Box64, and GPU translation layers like DXVK and Turnip.",
+  "theme": "almond",
+  "primaryColor": "#04a5f3",
+  "lightColor": "#0485cd",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Containers",
+            "pages": [
+              "containers/overview",
+              "containers/creating",
+              "containers/settings",
+              "containers/drives"
+            ]
+          },
+          {
+            "group": "Graphics & Performance",
+            "pages": [
+              "graphics/drivers",
+              "graphics/dxwrappers",
+              "graphics/box86-box64-presets"
+            ]
+          },
+          {
+            "group": "Controls & Input",
+            "pages": [
+              "controls/input-controls",
+              "controls/external-controllers",
+              "controls/shortcuts"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/environment-variables",
+              "advanced/wine-components",
+              "advanced/wine-versions",
+              "advanced/audio",
+              "advanced/troubleshooting"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Run Windows (x86_64) applications and games on Android ARM devices",
+    "Wine integration for Windows application compatibility",
+    "Box86/Box64 x86-to-ARM translation with configurable presets (Stability, Compatibility, Performance)",
+    "Multiple graphics driver support: Turnip (Vulkan), VirGL, Zink",
+    "DirectX translation via DXVK, VKD3D, WineD3D, and CNC DDraw",
+    "Container-based isolation for each Windows environment",
+    "Custom input controls editor with on-screen gamepad overlay",
+    "External controller support with button binding configuration",
+    "Per-shortcut settings for individual games and applications",
+    "ALSA audio support with configurable driver",
+    "Virtual drive mapping to Android storage locations"
+  ],
+  "publicApiSurface": [
+    "Container — manages Windows environment configuration (screen size, graphics driver, Wine components, drives)",
+    "ContainerManager — creates, lists, imports/exports, and deletes containers",
+    "Shortcut — stores per-game launch settings (exec path, arguments, container ID)",
+    "Box86_64Preset — preset profiles: STABILITY, COMPATIBILITY, INTERMEDIATE, PERFORMANCE, CUSTOM",
+    "WineInfo — represents a Wine version (version string, arch, path)",
+    "XEnvironment — runtime environment managing components (XServer, ALSA, GuestProgramLauncher, VirGL)",
+    "ImageFs — the root filesystem image that hosts Wine and the Ubuntu rootfs",
+    "InputControlsManager — manages on-screen control profiles (.icp files)",
+    "ControlsProfile — a named set of input control bindings",
+    "ExternalController — maps physical gamepad buttons to Windows input events",
+    "WineUtils — utility methods for creating dosdevice symlinks, installing Wine builds, running Wine commands"
+  ]
+}

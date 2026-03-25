@@ -1,0 +1,104 @@
+---
+title: "Audio configuration"
+description: "Configure the audio backend (ALSA or PulseAudio), fix common sound issues, and understand how Wine components interact with audio in Winlator."
+---
+
+Winlator routes audio from Windows applications through a Linux audio backend that runs inside the container's XEnvironment. The backend translates Windows audio API calls (DirectSound, WaveOut, etc.) into system audio output on the Android device.
+
+## Audio backends
+
+Two backends are available. The active backend is stored in the `audioDriver` field of the container config.
+
+<Tabs>
+  <Tab title="ALSA (default)">
+    **Advanced Linux Sound Architecture** is the default audio driver (`Container.DEFAULT_AUDIO_DRIVER = "alsa"`).
+
+    ALSA runs as a dedicated `ALSAServerComponent` inside XEnvironment. It opens a Unix domain socket, accepts connections from Wine's ALSA audio driver, and forwards PCM audio to Android's audio subsystem.
+
+    ```java
+    // ALSAServerComponent uses multithreaded client handling
+    connector.setMultithreadedClients(true);
+    ```
+
+    **Characteristics:**
+    - Lower latency than PulseAudio for most games
+    - Multithreaded client handling for concurrent audio streams
+    - Requires the `MODIFY_AUDIO_SETTINGS` Android permission (granted automatically)
+    - Audio capture (`allowAudioPlaybackCapture=true`) is enabled in the manifest
+  </Tab>
+  <Tab title="PulseAudio">
+    **PulseAudio** is an alternative backend provided by `PulseAudioComponent`. It spawns a PulseAudio daemon process that loads the `module-aaudio-sink` module, routing audio through Android's AAudio layer.
+
+    PulseAudio config written at runtime:
+    ```
+    load-module module-native-protocol-unix auth-anonymous=1 auth-cookie-enabled=0
+    load-module module-aaudio-sink
+    set-default-sink AAudioSink
+    ```
+
+    **Characteristics:**
+    - Better compatibility with applications that expect a PulseAudio socket
+    - Slightly higher latency than ALSA in most cases
+    - Runs as a separate process (`libpulseaudio.so`)
+  </Tab>
+</Tabs>
+
+To switch the backend, open **Container Settings → Audio** and select either `alsa` or `pulseaudio`.
+
+## Wine audio components
+
+The audio driver alone is not enough — the corresponding Wine components must also be enabled:
+
+| Wine component | Required for |
+|---|---|
+| `directsound=1` | Any game using the DirectSound API (most pre-2010 games) |
+| `directmusic=1` | Games using DirectMusic for MIDI-based soundtracks |
+
+Both are configured in **Container Settings → Wine Components**. `directsound` is enabled by default; `directmusic` is disabled by default.
+
+<Note>
+  Even with the audio driver correctly set, audio will be silent if `directsound=0` in the Wine components for a game that needs it.
+</Note>
+
+## Common audio issues
+
+<AccordionGroup>
+  <Accordion title="No sound at all" icon="volume-x">
+    Work through this checklist:
+
+    <Steps>
+      <Step title="Verify the audio driver">
+        Open **Container Settings → Audio** and confirm `alsa` is selected. Save and restart the container.
+      </Step>
+      <Step title="Check Wine DirectSound component">
+        Go to **Container Settings → Wine Components** and make sure `directsound` is set to `1` (enabled).
+      </Step>
+      <Step title="Confirm Android permissions">
+        Winlator requires the `MODIFY_AUDIO_SETTINGS` permission. On Android 13+ you may need to manually grant audio permissions from **Android Settings → Apps → Winlator → Permissions**.
+      </Step>
+      <Step title="Try PulseAudio">
+        If ALSA still produces no output, switch to PulseAudio in Container Settings and restart.
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Audio crackling, popping, or lag" icon="wave-square">
+    Some degree of audio latency is expected under emulation. However, severe crackling usually has a specific cause:
+
+    - **CPU overload:** The device is not keeping up with real-time audio. Lower the game's graphics settings or switch the Box64 preset to `Performance`.
+    - **mesa_glthread interference:** In rare cases, GL threading causes CPU scheduling spikes that affect audio. Try setting `mesa_glthread=false` in environment variables.
+    - **PulseAudio buffer:** PulseAudio's buffering model can cause noticeable lag. Switch to ALSA for lower latency.
+  </Accordion>
+
+  <Accordion title="MIDI / music not playing" icon="music">
+    DirectMusic is disabled by default. If a game relies on DirectMusic for its soundtrack (common in late-1990s/early-2000s titles):
+
+    1. Open **Container Settings → Wine Components**
+    2. Enable `directmusic` (set to `1`)
+    3. Restart the container
+  </Accordion>
+
+  <Accordion title="Video cutscenes have no audio" icon="film">
+    Video cutscenes often use DirectShow for both video and audio decoding. Enable the `directshow` Wine component and, if the video uses WMA/WMV audio, also verify that `wmdecoder=1`.
+  </Accordion>
+</AccordionGroup>

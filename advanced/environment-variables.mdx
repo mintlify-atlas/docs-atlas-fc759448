@@ -1,0 +1,112 @@
+---
+title: "Environment variables"
+description: "Configure Wine and Mesa environment variables to tune graphics, audio, and runtime behavior per container."
+---
+
+Environment variables are key-value pairs passed into the Linux/Wine runtime when a container starts. They let you control low-level behavior of Mesa graphics drivers, Wine internals, DXVK, and other subsystems without recompiling anything.
+
+Each variable is stored in the `envVars` field of a container's `.container` config file. The `EnvVars` class parses them as a **space-separated** list of `KEY=VALUE` pairs:
+
+```
+ZINK_DESCRIPTORS=lazy WINEESYNC=1 mesa_glthread=true
+```
+
+To add or edit variables, open **Container Settings → Environment Variables** tab.
+
+<Note>
+  Variables are applied at container startup. Restart the container after making changes for them to take effect.
+</Note>
+
+## Default environment variables
+
+Every new container is initialized with the following defaults (from `Container.DEFAULT_ENV_VARS`):
+
+```
+ZINK_DESCRIPTORS=lazy
+ZINK_DEBUG=compact
+MESA_SHADER_CACHE_DISABLE=false
+MESA_SHADER_CACHE_MAX_SIZE=512MB
+mesa_glthread=true
+WINEESYNC=1
+MESA_VK_WSI_PRESENT_MODE=mailbox
+TU_DEBUG=noconform
+```
+
+| Variable | Default value | Description |
+|---|---|---|
+| `ZINK_DESCRIPTORS` | `lazy` | Delays descriptor set allocation in the Zink OpenGL-over-Vulkan driver, improving overall throughput. |
+| `ZINK_DEBUG` | `compact` | Activates compact descriptor mode in Zink, reducing GPU memory pressure. |
+| `MESA_SHADER_CACHE_DISABLE` | `false` | Keeps Mesa's on-disk shader cache enabled so compiled shaders are reused across runs. |
+| `MESA_SHADER_CACHE_MAX_SIZE` | `512MB` | Caps the shader cache on disk to 512 MB, preventing unbounded storage use. |
+| `mesa_glthread` | `true` | Moves OpenGL command marshalling to a background thread, offloading the main CPU thread and reducing frame-time spikes. |
+| `WINEESYNC` | `1` | Enables Wine's eventfd-based synchronization (esync), replacing Wine's older server-round-trip sync model for far lower CPU overhead in sync-heavy games. |
+| `MESA_VK_WSI_PRESENT_MODE` | `mailbox` | Uses the Vulkan mailbox (triple-buffering) present mode instead of FIFO, reducing perceived latency. |
+| `TU_DEBUG` | `noconform` | Disables strict Vulkan conformance checks in the Turnip Adreno driver, which would otherwise reject some valid game usage patterns. |
+
+## Additional useful variables
+
+<AccordionGroup>
+  <Accordion title="MESA_EXTENSION_MAX_YEAR" icon="calendar">
+    ```
+    MESA_EXTENSION_MAX_YEAR=2003
+    ```
+    Prevents Mesa from advertising OpenGL extensions that were introduced after the given year. Some older games crash or refuse to start when they detect modern extensions they were never written to handle. Setting this to `2003` is recommended for games from the early 2000s.
+
+    <Tip>
+      Add this variable in **Container Settings → Environment Variables** if an older game fails to open.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="WINEDEBUG" icon="bug">
+    ```
+    WINEDEBUG=warn,err,fixme
+    ```
+    Controls which Wine debug channels are logged. The default channels configured in Winlator Settings are `warn`, `err`, and `fixme`. You can narrow or broaden the output:
+
+    | Value | Effect |
+    |---|---|
+    | `warn,err,fixme` | Default — warnings, errors, and unimplemented stubs |
+    | `+all` | Everything (very verbose, performance impact) |
+    | `-all` | Silence all Wine debug output |
+    | `+d3d` | Only Direct3D debug messages |
+
+    Enable Wine debug logging in **Settings → Enable Wine Debug**, then choose channels from the list.
+  </Accordion>
+
+  <Accordion title="DXVK_ASYNC" icon="bolt">
+    ```
+    DXVK_ASYNC=1
+    ```
+    Enables asynchronous shader compilation in DXVK. Shaders are compiled in the background instead of blocking the main thread, which eliminates the most severe stutters during first-run shader compilation. Some games may show brief graphical artifacts while a shader is still compiling.
+  </Accordion>
+
+  <Accordion title="DXVK_HUD" icon="chart-bar">
+    ```
+    DXVK_HUD=fps
+    ```
+    Overlays DXVK performance information on-screen. Common values:
+
+    | Value | Shows |
+    |---|---|
+    | `fps` | Frames per second |
+    | `frametimes` | Frame-time graph |
+    | `submissions` | GPU submission count |
+    | `drawcalls` | Draw call count |
+    | `pipelines` | Compiled pipeline count |
+    | `full` | All of the above |
+  </Accordion>
+</AccordionGroup>
+
+## Format reference
+
+The `EnvVars` class (see `EnvVars.java`) parses the variable string as follows:
+
+- Entries are **space-separated**: `KEY1=VALUE1 KEY2=VALUE2`
+- No quotes are needed for simple values
+- Values with spaces must escape the space with a backslash (`\ `) in the stored string (handled automatically by the UI)
+- Duplicate keys are overwritten; the last definition wins
+- The full list can be retrieved as a `String[]` via `toStringArray()` or as a single escaped string via `toEscapedString()`
+
+<Warning>
+  Do not add line breaks inside the environment variable field. All entries must stay on a single logical line, space-separated.
+</Warning>

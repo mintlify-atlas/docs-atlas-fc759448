@@ -1,0 +1,150 @@
+---
+title: "Shortcuts"
+description: "Create per-game launch configurations that override container defaults for graphics, audio, controls, and more — all from the Winlator home screen."
+---
+
+A **shortcut** is a saved launch configuration for a specific Windows executable inside a container. Shortcuts appear on the Winlator home screen and let you launch a game with a single tap, using settings that may differ from the container's defaults.
+
+<Tip>
+  Try running games using shortcuts on the Winlator home screen — there you can define individual settings for each game without affecting other games in the same container.
+</Tip>
+
+## Shortcuts vs. container settings
+
+Every container has a set of default settings (graphics driver, DX wrapper, screen size, etc.). A shortcut can **inherit** all of those defaults or **override** any subset of them on a per-game basis. This means you can:
+
+- Run two games from the same container, each with a different graphics driver
+- Assign a game-specific on-screen controls profile per game
+- Force a different screen resolution for a single title without changing the container
+- Set extra command-line arguments for one game only
+
+When a shortcut setting is left at its default (i.e. not overridden), Winlator uses the container's value at launch time. Changes to the container later propagate automatically to all shortcuts that have not overridden that field.
+
+## Shortcut structure
+
+A shortcut is stored as a `.desktop` file inside the container's shortcut directory. It follows the XDG Desktop Entry format with an additional `[Extra Data]` section for Winlator-specific overrides:
+
+| Field (`.desktop` key) | Description |
+|------------------------|-------------|
+| Filename stem | The display name shown on the home screen — derived from the `.desktop` filename (without extension) via `FileUtils.getBasename()` |
+| `Exec` | The Wine command line; the `.exe` path is extracted from the last `wine ` argument in this line |
+| `Icon` | Base name of the icon file (looked up in the container's icons directories at 16, 32, 48, and 64 px) |
+| `StartupWMClass` | X11 window class hint used for window management |
+
+Winlator-specific overrides are written under `[Extra Data]`:
+
+| Extra Data key | Description |
+|----------------|-------------|
+| `execArgs` | Additional command-line arguments appended to the Wine invocation |
+| `screenSize` | Override the container's screen resolution (e.g. `1280x720`) |
+| `graphicsDriver` | Override the graphics driver (e.g. `virgl`, `turnip`) |
+| `dxwrapper` | Override the DirectX wrapper (e.g. `dxvk`, `wined3d`) |
+| `dxwrapperConfig` | Override the DX wrapper configuration string |
+| `audioDriver` | Override the audio driver |
+| `forceFullscreen` | Set to `1` to enable Force Fullscreen mode |
+| `box86Preset` | Override the Box86 compatibility preset |
+| `box64Preset` | Override the Box64 compatibility preset |
+| `wincomponents` | Override the enabled Wine components |
+| `envVars` | Additional environment variables specific to this shortcut |
+| `controlsProfile` | ID of the on-screen controls profile to load for this game |
+| `dinputMapperType` | DirectInput mapper type (XInput or legacy) |
+
+Only fields that differ from the container defaults are written, keeping shortcut files minimal.
+
+## Creating a shortcut
+
+<Steps>
+  <Step title="Open a container">
+    From the Winlator home screen, tap a container to open it, or create a new one if you have not set one up yet.
+  </Step>
+  <Step title="Browse to the executable">
+    Use the built-in file manager inside the container to navigate to the Windows application's `.exe` file (typically inside `drive_c/`).
+  </Step>
+  <Step title="Create the shortcut">
+    Long-press the `.exe` file, or tap the context menu icon, and select **Create Shortcut**. Winlator generates a `.desktop` file and adds the shortcut to your home screen.
+  </Step>
+  <Step title="Open shortcut settings">
+    On the Winlator home screen, tap the menu icon (⋮) next to the shortcut and select **Settings** to open the `ShortcutSettingsDialog`.
+  </Step>
+  <Step title="Configure per-game overrides">
+    Adjust any settings you want to override for this specific game (see the section below). Leave settings unchanged to inherit the container's defaults.
+  </Step>
+  <Step title="Save">
+    Tap **OK**. Changes are written to the shortcut's `[Extra Data]` section immediately.
+  </Step>
+</Steps>
+
+## Shortcut-specific settings
+
+The **ShortcutSettingsDialog** exposes the following overridable settings:
+
+<AccordionGroup>
+  <Accordion title="General">
+    **Name** — rename the shortcut. The underlying `.desktop` file is renamed to match.
+
+    **Extra arguments** — additional arguments passed to Wine when launching this executable. Use the quick-insert menu (the arrow button) to add common flags.
+  </Accordion>
+  <Accordion title="Graphics">
+    **Graphics driver** — select a renderer (e.g. Turnip/Adreno Vulkan, VirGL, Software). Overrides the container default for this game only.
+
+    **DX wrapper** — choose how DirectX calls are translated (DXVK, WineD3D, CNC DDraw, etc.). Each wrapper has its own configuration button.
+
+    **Screen size** — set a custom resolution for this game. Useful for older titles that run poorly at the container's default resolution.
+
+    <Tip>
+      To display low-resolution games correctly, try enabling the **Force Fullscreen** option. It stretches the game window to fill the screen without changing the internal rendering resolution.
+    </Tip>
+
+    **Force Fullscreen** — forces the game window to fill the entire display surface regardless of the resolution it requests.
+  </Accordion>
+  <Accordion title="Audio">
+    **Audio driver** — override the audio backend (PulseAudio, ALSA, etc.) for this shortcut.
+  </Accordion>
+  <Accordion title="Compatibility">
+    **Box86 preset** — select a Box86 compatibility profile tuned for this 32-bit game's requirements.
+
+    **Box64 preset** — select a Box64 compatibility profile tuned for this 64-bit game's requirements.
+
+    **DirectInput mapper type** — switch between XInput mapping (default, works with most modern games) and legacy DirectInput mapping for older titles.
+  </Accordion>
+  <Accordion title="Win Components">
+    Override which Wine components (DirectX DLLs, runtime libraries) are enabled for this game without affecting the container's component list.
+  </Accordion>
+  <Accordion title="Environment variables">
+    Add or remove environment variables that are set only when this shortcut is launched. Container-level variables remain active unless overridden here.
+  </Accordion>
+  <Accordion title="Controls profile">
+    **Controls profile** — assign an on-screen input controls profile to this shortcut. The chosen profile's virtual overlay loads automatically when the game starts.
+
+    Set to **None** to launch without any on-screen controls (useful for games where you always use a physical controller).
+  </Accordion>
+</AccordionGroup>
+
+## Managing shortcuts
+
+All shortcuts across all containers are visible in the **Shortcuts** tab of the Winlator main navigation. From there you can:
+
+- **Launch** a shortcut by tapping its row
+- **Open settings** to edit overrides via the context menu
+- **Remove** a shortcut by selecting **Remove** from the context menu — this deletes the `.desktop` file and its icon asset
+
+<Warning>
+  Removing a shortcut does not uninstall the Windows application. The `.exe` and game data inside the container remain intact. You can recreate the shortcut at any time by browsing to the executable again.
+</Warning>
+
+## Tips and common patterns
+
+<CardGroup cols={2}>
+  <Card title="Per-game controls" icon="gamepad-2">
+    Assign a custom on-screen profile to each game shortcut. This way the correct button layout appears automatically without you having to switch profiles manually.
+  </Card>
+  <Card title="Low-resolution games" icon="display">
+    Enable **Force Fullscreen** for older games that run at 640×480 or 800×600. The image is upscaled to fill your screen, preventing a small window in the corner.
+  </Card>
+  <Card title="Troubleshooting a single game" icon="wrench">
+    Use the **extra arguments** field to pass Wine-specific flags (e.g. `-opengl`) or game launch options without affecting anything else in the container.
+  </Card>
+  <Card title="Testing multiple wrappers" icon="flask-conical">
+    Duplicate a shortcut and give each copy a different DX wrapper setting. Compare performance and compatibility without changing the container's default.
+  </Card>
+</CardGroup>

@@ -1,0 +1,170 @@
+---
+title: "Box86/Box64 presets"
+description: "Tune the x86-to-ARM64 instruction translator with built-in presets or custom dynarec flags to balance performance and compatibility."
+---
+
+Android devices run on ARM64 processors, but Windows software is compiled for x86 or x86_64 CPUs. Winlator uses two open-source translators to bridge this gap:
+
+- **Box86** — translates 32-bit (x86) Windows applications. Used for WoW64 mode, where 32-bit game executables run inside a 64-bit Wine process.
+- **Box64** — translates 64-bit (x86_64) Windows applications. Most modern games and applications use 64-bit executables.
+
+Both translators use a **dynamic recompiler (dynarec)** that converts x86 instructions into ARM64 instructions at runtime. The dynarec has several tunable flags that control the trade-off between translation accuracy and execution speed.
+
+Rather than exposing raw flags, Winlator provides **presets** — named combinations of dynarec flags. Each container stores separate presets for Box86 and Box64 via the `box86Preset` and `box64Preset` fields.
+
+<Info>
+  The default preset for both Box86 and Box64 is **COMPATIBILITY**.
+</Info>
+
+## Presets
+
+<AccordionGroup>
+  <Accordion title="STABILITY">
+    The most conservative preset. Every dynarec flag is set to favour correctness over speed.
+
+    **When to use:** Games that crash, produce wrong results, or have severe graphical corruption on other presets. Also recommended when debugging an issue.
+
+    **Dynarec flags:**
+
+    | Flag | Value | Effect |
+    |---|---|---|
+    | `DYNAREC_SAFEFLAGS` | `2` | Strictest CPU flag handling |
+    | `DYNAREC_FASTNAN` | `0` | Correct NaN propagation |
+    | `DYNAREC_FASTROUND` | `0` | Correct floating-point rounding |
+    | `DYNAREC_X87DOUBLE` | `1` | Uses 64-bit doubles for x87 FPU |
+    | `DYNAREC_BIGBLOCK` | `0` | Smallest translation blocks |
+    | `DYNAREC_STRONGMEM` | `2` | Strictest memory model |
+    | `DYNAREC_FORWARD` | `128` | Short forward branch prediction window |
+    | `DYNAREC_CALLRET` | `0` | Conservative call/return handling |
+    | `DYNAREC_WAIT` | `0` | Waits for blocks to be fully translated |
+  </Accordion>
+
+  <Accordion title="COMPATIBILITY (default)">
+    A balance between correctness and speed. It differs from STABILITY only in memory model strength (`STRONGMEM=1` instead of `2`) and enables background translation (`WAIT=1`).
+
+    **When to use:** Starting point for any game. Keep this preset unless you have a specific reason to change it.
+
+    **Dynarec flags:**
+
+    | Flag | Value | Effect |
+    |---|---|---|
+    | `DYNAREC_SAFEFLAGS` | `2` | Strictest CPU flag handling |
+    | `DYNAREC_FASTNAN` | `0` | Correct NaN propagation |
+    | `DYNAREC_FASTROUND` | `0` | Correct floating-point rounding |
+    | `DYNAREC_X87DOUBLE` | `1` | Uses 64-bit doubles for x87 FPU |
+    | `DYNAREC_BIGBLOCK` | `0` | Smallest translation blocks |
+    | `DYNAREC_STRONGMEM` | `1` | Relaxed memory model, better throughput |
+    | `DYNAREC_FORWARD` | `128` | Short forward branch prediction window |
+    | `DYNAREC_CALLRET` | `0` | Conservative call/return handling |
+    | `DYNAREC_WAIT` | `1` | Background translation enabled |
+  </Accordion>
+
+  <Accordion title="INTERMEDIATE">
+    A middle ground that enables fast NaN handling and larger translation blocks while keeping other safety flags.
+
+    **When to use:** Performance is noticeably poor on COMPATIBILITY and the game appears stable. Try this before jumping straight to PERFORMANCE.
+
+    **Dynarec flags:**
+
+    | Flag | Value | Effect |
+    |---|---|---|
+    | `DYNAREC_SAFEFLAGS` | `2` | Strictest CPU flag handling |
+    | `DYNAREC_FASTNAN` | `1` | Fast NaN (may differ from x86 behaviour) |
+    | `DYNAREC_FASTROUND` | `0` | Correct floating-point rounding |
+    | `DYNAREC_X87DOUBLE` | `1` | Uses 64-bit doubles for x87 FPU |
+    | `DYNAREC_BIGBLOCK` | `1` | Larger translation blocks |
+    | `DYNAREC_STRONGMEM` | `0` | Weakest memory model |
+    | `DYNAREC_FORWARD` | `128` | Short forward branch prediction window |
+    | `DYNAREC_CALLRET` | `0` | Conservative call/return handling |
+    | `DYNAREC_WAIT` | `1` | Background translation enabled |
+  </Accordion>
+
+  <Accordion title="PERFORMANCE">
+    Maximum speed. All accuracy flags are relaxed to their fastest values. Translation blocks are as large as possible, the memory model is weakest, and fast floating-point shortcuts are enabled.
+
+    **When to use:** CPU-bound games that run too slowly on other presets and appear stable. Not all games tolerate this preset — physics simulations and games with precise floating-point calculations may behave incorrectly.
+
+    <Tip>
+      If you are experiencing performance issues, try changing the Box64 preset to **PERFORMANCE** first. This often gives a noticeable speed improvement with minimal compatibility impact in well-behaved games.
+    </Tip>
+
+    **Dynarec flags:**
+
+    | Flag | Value | Effect |
+    |---|---|---|
+    | `DYNAREC_SAFEFLAGS` | `1` | Relaxed CPU flag handling |
+    | `DYNAREC_FASTNAN` | `1` | Fast NaN |
+    | `DYNAREC_FASTROUND` | `1` | Fast floating-point rounding |
+    | `DYNAREC_X87DOUBLE` | `0` | Uses 32-bit floats for x87 FPU |
+    | `DYNAREC_BIGBLOCK` | `3` | Maximum translation block size |
+    | `DYNAREC_STRONGMEM` | `0` | Weakest memory model |
+    | `DYNAREC_FORWARD` | `512` | Long forward branch prediction window |
+    | `DYNAREC_CALLRET` | `1` | Optimised call/return handling |
+    | `DYNAREC_WAIT` | `1` | Background translation enabled |
+  </Accordion>
+
+  <Accordion title="CUSTOM">
+    A user-defined preset with arbitrary dynarec flags. Custom presets are stored in shared preferences under the `box86_custom_presets` or `box64_custom_presets` key, encoded as a comma-separated list of `id|name|envVars` entries.
+
+    You can create, edit, duplicate, and delete custom presets from the preset manager inside Winlator. Custom preset IDs take the form `CUSTOM-N` where N is an auto-incrementing integer.
+
+    **When to use:** You have identified a specific combination of flags that works for a particular game, or you want to share a working configuration with others.
+  </Accordion>
+</AccordionGroup>
+
+## Changing presets
+
+<Steps>
+  <Step title="Open container settings">
+    Long-press the container on the main screen and select **Edit**.
+  </Step>
+  <Step title="Locate the Box86 / Box64 preset fields">
+    Scroll to the **Box86 preset** and **Box64 preset** dropdowns. Each can be set independently.
+  </Step>
+  <Step title="Select a preset">
+    Choose the preset that matches your goal. The dropdown shows all built-in presets plus any custom presets you have created.
+  </Step>
+  <Step title="Save and test">
+    Save the container and launch your application. The new dynarec flags take effect immediately on the next launch — no reinstallation is needed.
+  </Step>
+</Steps>
+
+## Troubleshooting guide
+
+| Symptom | Recommended action |
+|---|---|
+| Poor frame rate / slow CPU-bound game | Switch Box64 preset to **PERFORMANCE** |
+| Random crashes or freezes | Switch to **STABILITY** |
+| Graphical corruption or wrong colours | Switch to **STABILITY** |
+| Physics or maths glitches | Switch to **COMPATIBILITY** or **STABILITY** |
+| Unity Engine game crashes | Try **STABILITY**, or add `-force-gfx-direct` to the executable arguments |
+| Game works but is slightly unstable on PERFORMANCE | Try **INTERMEDIATE** as a middle ground |
+
+## Custom presets
+
+You can create a named custom preset with hand-picked dynarec flags:
+
+<Steps>
+  <Step title="Open the preset manager">
+    In the container settings, tap the preset dropdown and select **Manage presets**.
+  </Step>
+  <Step title="Create a new preset">
+    Tap **Add** and give the preset a name. The preset editor shows each `BOX64_DYNAREC_*` flag as an editable field.
+  </Step>
+  <Step title="Enter flag values">
+    Refer to the flag tables above as a starting point. Each flag accepts a numeric value — higher values generally mean less safe but faster execution.
+  </Step>
+  <Step title="Save and apply">
+    Save the preset. It appears in the Box86 and Box64 preset dropdowns for all containers.
+  </Step>
+</Steps>
+
+<Note>
+  Custom presets are stored per-device in Android shared preferences. They are not exported with the container backup by default. Note down your flag values before resetting the app or migrating to a new device.
+</Note>
+
+## Box86 vs Box64: which preset matters more?
+
+Most modern 64-bit games only use Box64. The Box64 preset has the largest impact on performance and compatibility for current titles.
+
+Box86 is active for 32-bit executables that run through Wine's WoW64 subsystem (`wow64Mode = true`). Some older games and certain game launchers ship 32-bit binaries and will use Box86 even on 64-bit systems. When a game uses both (for example, a 64-bit game engine with a 32-bit launcher), both presets apply to their respective processes.

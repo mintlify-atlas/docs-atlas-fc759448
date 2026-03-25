@@ -1,0 +1,86 @@
+---
+title: "Wine components"
+description: "Enable or disable Wine's built-in Windows component libraries to control DirectX, audio, networking, and runtime support per container."
+---
+
+Wine components are optional Windows subsystem libraries that Winlator can activate or deactivate inside a container's Wine prefix. Toggling a component updates the `Software\Wine\DllOverrides` registry key, switching the relevant DLLs between native (Winlator-supplied) and built-in (Wine's own) implementations.
+
+Components are stored in the `wincomponents` field of the container config as a comma-separated `key=value` list where `1` means enabled and `0` means disabled.
+
+## Default and fallback component sets
+
+**Default** (`Container.DEFAULT_WINCOMPONENTS`):
+```
+direct3d=1,directsound=1,directmusic=0,directshow=0,directplay=0,vcrun2010=1,wmdecoder=1
+```
+
+**Fallback** (used when detection fails — `Container.FALLBACK_WINCOMPONENTS`):
+```
+direct3d=0,directsound=0,directmusic=0,directshow=0,directplay=0,vcrun2010=0,wmdecoder=0
+```
+
+## Component reference
+
+| Component | Default | Description |
+|---|---|---|
+| `direct3d` | `1` (enabled) | Activates native Direct3D support. Required for any game using D3D8, D3D9, D3D10, or D3D11 with a DXVK or WineD3D wrapper. Disabling this falls back entirely to Wine's built-in stubs. |
+| `directsound` | `1` (enabled) | Enables native DirectSound audio. Required for games that use the DirectSound API for sound effects and music. Disabling causes audio routed through DirectSound to be silent. |
+| `directmusic` | `0` (disabled) | Provides MIDI/DirectMusic playback support. Enable for games that rely on DirectMusic for their soundtrack. Disabled by default because most modern games do not use it. |
+| `directshow` | `0` (disabled) | Activates the DirectShow media framework, used for in-game video cutscenes (AVI, WMV). Enable if a game shows a black screen where a video should play. |
+| `directplay` | `0` (disabled) | Provides the DirectPlay legacy LAN/multiplayer networking API. Needed only for very old games (pre-2004) that use DirectPlay for multiplayer. |
+| `vcrun2010` | `1` (enabled) | Installs the Visual C++ 2010 runtime libraries (`msvcr100.dll`, `msvcp100.dll`). A large number of Windows applications require these libraries to launch. |
+| `wmdecoder` | `1` (enabled) | Registers native Windows Media codecs (`wmadmod.dll`, `wmvdecod.dll`) for WMA/WMV audio and video decoding, replacing Wine's GStreamer-based fallback. |
+
+<Tip>
+  After changing components, Winlator updates the Wine registry automatically. No manual `wineboot` is needed.
+</Tip>
+
+## Wine add-ons: Mono and Gecko
+
+Beyond the toggleable components above, Winlator bundles two larger Wine add-ons in the `wine_addons/` directory.
+
+<CardGroup cols={2}>
+  <Card title="Wine Mono" icon="microsoft">
+    **Bundled versions:** `wine-mono-10.1.0`, `wine-mono-9.0.0`
+
+    Wine Mono is a packaged build of the Mono runtime that Wine uses as a drop-in replacement for the Microsoft .NET Framework. Install it when an application requires .NET Framework and shows an error about a missing `mscoree.dll` or fails to launch entirely.
+
+    **How to install:**
+    1. Open the Windows Start Menu inside the container
+    2. Navigate to **System Tools → Installers**
+    3. Select **Wine Mono** and follow the prompts
+
+    <Note>
+      Installing Wine Mono is strongly recommended for any productivity software, game launchers, or tools built with .NET.
+    </Note>
+  </Card>
+
+  <Card title="Wine Gecko" icon="globe">
+    **Bundled version:** `wine-gecko-2.47.4`
+
+    Wine Gecko is a stripped-down Gecko-based browser engine embedded inside the Wine prefix. It provides the HTML rendering engine used by Wine's built-in Internet Explorer (`iexplore.exe`) and any application that embeds a WebBrowser control (`mshtml.dll`).
+
+    Most games do not require Gecko. You may need it if an application shows an in-app browser panel or depends on `mshtml` for its UI.
+  </Card>
+</CardGroup>
+
+## Changing components
+
+<Steps>
+  <Step title="Open Container Settings">
+    Long-press a container on the Winlator home screen and tap **Settings**, or tap the pencil icon.
+  </Step>
+  <Step title="Navigate to the Components tab">
+    Select the **Wine Components** tab from the settings tabs at the top.
+  </Step>
+  <Step title="Toggle the desired component">
+    Flip the switch next to the component you want to enable or disable. Changes take effect on the next container start.
+  </Step>
+  <Step title="Restart the container">
+    Stop and restart the container so the updated DLL overrides are applied to the running Wine session.
+  </Step>
+</Steps>
+
+<Warning>
+  Disabling `direct3d` will prevent any 3D game from rendering correctly. Only disable it if you are diagnosing a specific issue.
+</Warning>

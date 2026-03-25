@@ -1,0 +1,111 @@
+---
+title: "Wine versions"
+description: "Manage the built-in and user-installed Wine versions available to Winlator containers, including WoW64 mode for 32-bit app compatibility."
+---
+
+Winlator ships with a custom-patched build of Wine and supports installing additional Wine versions alongside it. Each container can be configured to use a different Wine version, allowing you to run incompatible applications side-by-side.
+
+## Built-in Wine version
+
+The default Wine version bundled with Winlator is:
+
+| Property | Value |
+|---|---|
+| Version | **Wine 9.2** |
+| Architecture | `x86_64` |
+| Identifier | `wine-9.2-custom` |
+| Displayed as | `Wine 9.2 (Custom)` |
+
+The `Custom` suffix in the identifier signals that this is Winlator's own patched build — not an unmodified upstream Wine binary. The patches include fixes and optimizations specific to running Wine under Android/Box64.
+
+<Note>
+  The built-in Wine version cannot be removed. It is always listed first in the Wine version selector.
+</Note>
+
+## Wine executables
+
+Depending on the container mode, Winlator selects a different Wine binary from `/opt/wine/bin/`:
+
+| Binary | Used when |
+|---|---|
+| `wine-wow64` | WoW64 mode is enabled (default) — handles both 32-bit and 64-bit Windows apps in a single process |
+| `wine32` | Pure 32-bit mode — runs only 32-bit applications, lower overhead for exclusively 32-bit titles |
+| `wine64` | 64-bit only — used when addressing a 64-bit Wine installation without WoW64 |
+
+At runtime, `getExecutable()` copies either `wine-wow64` or `wine32` to a generic `wine` binary path and sets the executable bit, so Wine always starts via a consistent entry point.
+
+## WoW64 mode
+
+WoW64 (Windows 32-bit on Windows 64-bit) lets the 64-bit Wine process run 32-bit applications without a separate 32-bit Wine server. It is **enabled by default** for every new container (`wow64Mode = true`).
+
+<CardGroup cols={2}>
+  <Card title="WoW64 enabled" icon="check">
+    - Runs the `wine-wow64` binary
+    - 32-bit and 64-bit apps both work
+    - Box86 handles the 32-bit x86 translation layer
+    - Default for maximum compatibility
+  </Card>
+  <Card title="WoW64 disabled" icon="x">
+    - Runs the `wine32` binary only
+    - Exclusively for 32-bit apps
+    - Slightly lower overhead for pure 32-bit titles
+    - 64-bit apps will not launch
+  </Card>
+</CardGroup>
+
+To toggle WoW64 mode, go to **Container Settings → Advanced Tab → WoW64 Mode**.
+
+## Installing additional Wine versions
+
+You can download community or upstream Wine builds and import them into Winlator. Installed versions are stored under the `opt/installed-wine/` directory inside the Winlator image filesystem (at `ImageFs.getInstalledWineDir()`).
+
+<Steps>
+  <Step title="Download a Wine XZ archive">
+    Obtain a Wine build packaged as a `.tar.xz` archive. Community-built Winlator-compatible Wine builds are typically shared on the Winlator GitHub Releases or community forums.
+  </Step>
+  <Step title="Open Winlator Settings">
+    Tap the menu icon and navigate to **Settings** in the main navigation drawer.
+  </Step>
+  <Step title="Tap Install Wine Version">
+    Under the **Installed Wine Versions** section, tap the **Install Wine Version** button and accept the warning dialog.
+  </Step>
+  <Step title="Select the archive file">
+    Use the file picker to select the `.tar.xz` Wine archive you downloaded. Winlator extracts it via `WineUtils.extractWineFileForInstallAsync()` and detects the version by running `wine --version` internally.
+  </Step>
+  <Step title="Choose architecture and confirm">
+    If the archive contains both 32-bit and 64-bit binaries, select the architecture (`x86` or `x86_64`) and confirm installation. A new Wine prefix is generated for that version.
+  </Step>
+</Steps>
+
+<Warning>
+  Only install Wine builds that are compiled for the Android/Termux environment. Standard Linux Wine binaries will not work.
+</Warning>
+
+## Wine version naming convention
+
+Installed Wine versions follow the pattern:
+
+```
+wine-{version}-{subversion}-{arch}
+```
+
+Examples:
+
+| Identifier | Meaning |
+|---|---|
+| `wine-9.2-custom` | Built-in Wine 9.2 (Winlator custom build, x86_64) |
+| `wine-9.0-x86_64` | User-installed Wine 9.0 for 64-bit |
+| `wine-8.21-1-x86` | User-installed Wine 8.21 sub-release 1, 32-bit |
+
+The pattern is enforced by the regex in `WineInfo.java`:
+```
+^wine-([0-9\.]+)-?([0-9\.]+)?-(x86|x86_64)$
+```
+
+## Removing an installed Wine version
+
+Installed versions (not the built-in one) can be removed from **Settings → Installed Wine Versions**. Tap the remove button next to the version. Winlator will refuse to remove a version that is still assigned to an active container.
+
+## Per-container Wine version
+
+Each container stores its chosen Wine version in its `.container` config file under the `wineVersion` key. If the key is absent, the container uses the built-in Wine 9.2 (Custom). Changing the Wine version in Container Settings regenerates key system DLLs and DLL overrides for that container.

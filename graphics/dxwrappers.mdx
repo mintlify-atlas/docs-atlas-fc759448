@@ -1,0 +1,178 @@
+---
+title: "DirectX wrappers"
+description: "Translate Windows Direct3D calls to Vulkan or OpenGL so games can run on Android hardware through Wine."
+---
+
+Windows games communicate with the GPU through Microsoft's Direct3D API (part of DirectX). Android hardware has no native Direct3D support, so Winlator uses translation libraries — called **DirectX wrappers** — to convert those API calls into Vulkan or OpenGL commands that Mesa drivers can execute.
+
+```
+Windows game
+    ↓  Direct3D 8 / 9 / 10 / 11 / 12 calls
+DX wrapper (DXVK / VKD3D / WineD3D / D8VK / CNC DDraw)
+    ↓  Vulkan or OpenGL
+Mesa driver (Turnip / VirGL / Zink)
+    ↓
+Android GPU
+```
+
+The wrapper is selected per container. The default is **DXVK** (`DEFAULT_DXWRAPPER = "dxvk"`).
+
+## Available wrappers
+
+<Tabs>
+  <Tab title="DXVK (default)">
+    DXVK translates Direct3D 9, 10, and 11 to Vulkan. It is the best-performing wrapper for the majority of modern and semi-modern Windows games.
+
+    **Supported DirectX versions:** D3D9, D3D10, D3D11
+    **Backend:** Vulkan
+    **Available versions:** 0.96, 1.4.2, 1.7.2, 2.2, 2.3.1, 2.5.2, 2.6.1
+
+    <Note>
+      DXVK requires a Vulkan-capable driver. Use it with Turnip on Adreno devices, or with Zink on other Vulkan-capable GPUs.
+    </Note>
+
+    DXVK has its own configuration system. Tap the **DXVK config** button in the container settings (backed by `DXVKConfigDialog`) to set options such as:
+
+    - Frame rate limiter (`dxvk.maxFrameRate`)
+    - HUD overlay elements (`dxvk.hud`)
+    - Async shader compilation (`dxvk.enableAsync`)
+    - State cache behaviour
+
+    The configuration is stored in the container's `dxwrapperConfig` field as a key-value string.
+  </Tab>
+
+  <Tab title="VKD3D">
+    VKD3D translates Direct3D 12 to Vulkan. Use it for games that require DX12.
+
+    **Supported DirectX versions:** D3D12
+    **Backend:** Vulkan
+    **Available versions:** 2.12, 2.14.1
+
+    <Warning>
+      VKD3D requires Vulkan 1.3 support from the GPU driver. On Adreno devices, use Turnip 25.0.0 for the best DX12 compatibility. DX12 games are generally more demanding and may not run well on all devices.
+    </Warning>
+  </Tab>
+
+  <Tab title="WineD3D">
+    WineD3D is Wine's built-in software Direct3D implementation. It translates Direct3D calls to OpenGL and does not require Vulkan. It is the most compatible option but typically the slowest.
+
+    **Supported DirectX versions:** D3D8, D3D9, D3D10, D3D11 (software path)
+    **Backend:** OpenGL
+    **Available versions:** 4.21, 7.8, 10.0 (installable)
+    **Internal identifier:** `wined3d`
+
+    <Note>
+      WineD3D is useful when a game is incompatible with DXVK, or on GPUs that lack Vulkan support. Performance is lower than DXVK but compatibility is broader.
+    </Note>
+  </Tab>
+
+  <Tab title="D8VK">
+    D8VK translates Direct3D 8 to Vulkan. It is a fork of DXVK extended to cover the older DX8 API surface.
+
+    **Supported DirectX versions:** D3D8
+    **Backend:** Vulkan
+
+    <Tip>
+      Use D8VK for games from 1999–2002 that use Direct3D 8. Examples include early-2000s action games, racing titles, and some RPGs from that era.
+    </Tip>
+  </Tab>
+
+  <Tab title="CNC DDraw">
+    CNC DDraw replaces the legacy DirectDraw and Direct3D 1–7 APIs with an OpenGL implementation. It is primarily aimed at real-time strategy games and other titles from the mid-1990s to early 2000s.
+
+    **Supported DirectX versions:** DirectDraw, D3D1–D3D7
+    **Backend:** OpenGL
+
+    <Tip>
+      CNC DDraw is the right choice for classic RTS games (Command & Conquer series, Age of Empires, StarCraft) and other games that rely on 2D blitting via DirectDraw rather than 3D rendering.
+    </Tip>
+  </Tab>
+</Tabs>
+
+## Comparison table
+
+| Wrapper | DirectX versions | Backend | Performance | Best use case |
+|---|---|---|---|---|
+| DXVK | D3D9, D3D10, D3D11 | Vulkan | High | Most modern and mid-era games |
+| VKD3D | D3D12 | Vulkan | Medium–High | DX12 games |
+| WineD3D | D3D8–D3D11 | OpenGL | Low–Medium | Compatibility fallback |
+| D8VK | D3D8 | Vulkan | High | Early-2000s 3D games |
+| CNC DDraw | DirectDraw, D3D1–7 | OpenGL | Medium | 1990s RTS and 2D games |
+
+## Choosing a wrapper
+
+<AccordionGroup>
+  <Accordion title="Game from 2004 onwards (3D)">
+    Use **DXVK**. Most games from this era target D3D9 or D3D11. DXVK's Vulkan backend delivers the best frame rates with Turnip on Adreno devices.
+  </Accordion>
+  <Accordion title="Game requires DirectX 12">
+    Use **VKD3D**. Select the latest available version (2.14.1) and pair with Turnip 25.0.0 on Adreno hardware.
+  </Accordion>
+  <Accordion title="Game from 1999–2003 using Direct3D 8">
+    Use **D8VK**. D8VK covers the DX8 API that DXVK does not handle.
+  </Accordion>
+  <Accordion title="Classic RTS or 2D game using DirectDraw">
+    Use **CNC DDraw**. It correctly handles the blitting and palette operations that DirectDraw games rely on.
+  </Accordion>
+  <Accordion title="Game crashes or renders incorrectly with DXVK">
+    Try **WineD3D** as a fallback. While slower, it has broader per-game compatibility because it goes through Wine's software implementation rather than a Vulkan translation layer.
+  </Accordion>
+  <Accordion title="Non-Vulkan GPU">
+    Use **WineD3D** (backed by OpenGL via VirGL) if your GPU does not support Vulkan. CNC DDraw is also available for legacy titles.
+  </Accordion>
+</AccordionGroup>
+
+## Installable components
+
+DXVK, VKD3D, WineD3D, Box64, and Turnip can be installed as optional components from the Winlator in-app component manager. The available packages are stored in the `installable_components/` directory:
+
+```
+installable_components/
+├── dxvk/
+│   ├── dxvk-0.96.tzst
+│   ├── dxvk-1.4.2.tzst
+│   ├── dxvk-1.7.2.tzst
+│   ├── dxvk-2.2.tzst
+│   ├── dxvk-2.3.1.tzst
+│   ├── dxvk-2.5.2.tzst
+│   └── dxvk-2.6.1.tzst
+├── vkd3d/
+│   ├── vkd3d-2.12.tzst
+│   └── vkd3d-2.14.1.tzst
+├── wined3d/
+│   ├── wined3d-4.21.tzst
+│   ├── wined3d-7.8.tzst
+│   └── wined3d-10.0.tzst
+├── box64/
+│   ├── box64-0.3.3.tzst
+│   ├── box64-0.3.5.tzst
+│   └── box64-0.3.7.tzst
+└── turnip/
+    ├── turnip-24.1.0.tzst
+    └── turnip-25.0.0.tzst
+```
+
+<Note>
+  Older DXVK versions (0.96, 1.4.2, 1.7.2) can improve compatibility with games that have issues on newer DXVK builds. Box64 and Turnip installable components let you update or downgrade these layers independently of the main app.
+</Note>
+
+## Configuring DXVK
+
+<Steps>
+  <Step title="Open container settings">
+    Long-press the container and select **Edit**.
+  </Step>
+  <Step title="Select DXVK as the wrapper">
+    Set **DX wrapper** to **DXVK**.
+  </Step>
+  <Step title="Open the DXVK config dialog">
+    Tap the **DXVK config** button to open the configuration editor. Settings are stored in the container's `dxwrapperConfig` field.
+  </Step>
+  <Step title="Adjust settings for your game">
+    Common adjustments include enabling async shader compilation to reduce stutter, or setting a frame-rate cap.
+  </Step>
+</Steps>
+
+<Warning>
+  Changing the DX wrapper after installing a game may require you to reinstall or reconfigure the game. DirectX runtime DLLs are written into the Wine prefix when the game is installed; switching wrappers may leave stale DLLs in place. If you encounter issues after switching, consider re-running the game's installer.
+</Warning>

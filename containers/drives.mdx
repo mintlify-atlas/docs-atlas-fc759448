@@ -1,0 +1,107 @@
+---
+title: "Drive mappings"
+description: "Map Android filesystem paths to Windows drive letters inside a Winlator container."
+---
+
+Windows applications navigate the filesystem using drive letters (C:, D:, E:, and so on). Winlator maps these letters to real Android filesystem paths, giving applications controlled access to storage.
+
+## Built-in drives
+
+Two drives are always present in every container and cannot be removed:
+
+| Drive | Maps to | Description |
+|---|---|---|
+| `C:` | `<container root>/.wine/drive_c/` | The Wine virtual Windows drive. Contains `Windows/`, `Program Files/`, user profiles, and the Windows registry. |
+| `Z:` | `/` (device root) | The entire Linux filesystem. Gives Wine (and Windows apps running inside it) read/write access to the full Android root path. |
+
+<Warning>
+  Drive Z: exposes the root filesystem to Windows applications. Be cautious when running untrusted software, as it could access or modify files outside the container.
+</Warning>
+
+## Custom drives
+
+You can add up to **8** custom drive letter mappings per container (`MAX_DRIVE_LETTERS = 8`). Drive letters start at D: and go up sequentially.
+
+### Default custom drives
+
+A freshly created container includes the following drive mappings:
+
+| Drive | Default path | Purpose |
+|---|---|---|
+| `D:` | Android Downloads folder | Easy access to files you download on your device |
+| `E:` | `/data/data/com.winlator/storage` | Winlator's internal dedicated storage directory |
+
+<Note>
+  The exact path for D: depends on your device's external storage location, typically `/storage/emulated/0/Download`.
+</Note>
+
+## Managing drive mappings
+
+Drive mappings are configured in the **Drives** tab when creating or editing a container.
+
+### Add a drive
+
+<Steps>
+  <Step title="Open the Drives tab">
+    In the container create or edit screen, tap the **Drives** tab.
+  </Step>
+  <Step title="Tap Add Drive">
+    Tap the **Add Drive** button. A new row appears with a drive letter selector and a path field.
+  </Step>
+  <Step title="Choose a drive letter">
+    Select a drive letter (D: through K:) from the dropdown. Letters already in use in other rows are not deduplicated automatically, so pick a unique one.
+  </Step>
+  <Step title="Set the path">
+    Type an Android filesystem path directly, or tap the folder icon to open the Android directory picker and browse to the location you want.
+  </Step>
+  <Step title="Save">
+    Tap the **Create** or **Save** button to write the updated drive configuration.
+  </Step>
+</Steps>
+
+### Edit a drive
+
+Tap the path field in any drive row to edit it directly, or tap the folder icon to browse to a new location.
+
+### Remove a drive
+
+Tap the **X** (remove) button on the right side of any drive row. The built-in C: and Z: drives do not appear in this list and cannot be removed.
+
+## Drive letter limits
+
+Winlator enforces a maximum of **8 custom drive mappings** per container. If you already have 8 entries, the **Add Drive** button becomes inactive. Remove an existing mapping to make room for a new one.
+
+## Use cases
+
+<CardGroup cols={2}>
+  <Card title="Game files" icon="gamepad-2">
+    Map a drive to a folder containing game ISOs, installers, or pre-extracted game data on your SD card or internal storage.
+  </Card>
+  <Card title="Save files" icon="floppy-disk">
+    Point a drive at a cloud-synced folder so save games are automatically backed up and accessible across devices.
+  </Card>
+  <Card title="Mods" icon="puzzle">
+    Mount a mods directory as a separate drive letter so you can swap mod packs without moving files into the container.
+  </Card>
+  <Card title="Shared storage" icon="folder-open">
+    Share a single Android folder across multiple containers (different drive letters) to access common assets without duplicating data.
+  </Card>
+</CardGroup>
+
+## Path creation behavior
+
+<Warning>
+  If the Android path you specify for a drive does not exist when the container starts, Wine will attempt to create it. This can result in unexpected directories being created on your device storage.
+</Warning>
+
+Always verify the path exists before adding a drive mapping, especially when pointing to external SD card locations, which may change mount paths depending on the device or Android version.
+
+## Drive mapping storage format
+
+Drive mappings are stored as a single compact string in the container config. The format concatenates each `LETTER:PATH` pair with no separator between entries — the colon after each drive letter acts as the delimiter:
+
+```
+D:/storage/emulated/0/DownloadE:/data/data/com.winlator/storage
+```
+
+This string is parsed by iterating over colon positions to extract drive letter and path pairs. You do not need to edit this manually — use the Drives tab UI.

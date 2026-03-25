@@ -1,80 +1,121 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Create your first Winlator container and run a Windows application in under 10 minutes."
 ---
 
-## Get started in three steps
+This guide walks you through launching your first Windows application with Winlator. By the end, you will have a working container configured with sensible defaults and a Windows `.exe` running on your Android device.
 
-Get your documentation site running locally and make your first customization.
+<Info>
+  Before continuing, make sure Winlator is installed and the initial system image setup has finished. See [Installation](/installation) if you have not done that yet.
+</Info>
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Launch Winlator and wait for setup">
+    Open Winlator from your app drawer. If this is your first launch, wait for the **Installing system files** progress dialog to finish. This step extracts the internal Linux filesystem image used by Wine and only runs once.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    When the dialog closes, you will land on the Winlator home screen.
+  </Step>
 
-### Step 2: Deploy your changes
+  <Step title="Create your first container">
+    Containers are isolated Wine environments. Each container has its own Wine prefix, drive mappings, and settings.
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    1. Tap the **Containers** tab at the bottom of the home screen.
+    2. Tap the **+** (add) button.
+    3. Give your container a name — for example, `My Games`.
+    4. Leave all other settings at their defaults for now and tap **Save**.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    <Tip>
+      You can run multiple containers side by side. Use separate containers for applications that need different Wine configurations — for example, one for older DirectX 9 games and another for newer DirectX 11 titles.
+    </Tip>
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Review the default container settings">
+    The default settings are a good starting point for most Windows applications:
 
-### Step 3: Go live
+    | Setting | Default value | Notes |
+    |---|---|---|
+    | Screen size | `1280x720` | The resolution of the virtual Windows desktop |
+    | Graphics driver | `turnip` | Adreno Vulkan driver; best performance on Qualcomm devices |
+    | DX wrapper | `dxvk` | Translates Direct3D calls to Vulkan |
+    | Audio driver | `alsa` | ALSA audio output via Wine |
+    | Box64 preset | `Compatibility` | Balances compatibility and speed |
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    You can change any of these later in **Container Settings** without creating a new container.
 
-## Next steps
+    <Note>
+      The `turnip` graphics driver requires a Qualcomm Adreno GPU. If your device uses a Mali, Dimensity, or other GPU, you may need to switch to `virgl` or `zink` in the Graphics Driver setting.
+    </Note>
+  </Step>
 
-Now that you have your docs running, explore these key features:
+  <Step title="Run a Windows application">
+    You can launch a Windows application in two ways:
+
+    **Option A — Browse for an .exe file**
+
+    1. Tap your container to open it.
+    2. Tap **Run** and then browse to an `.exe` file on your device storage.
+    3. Winlator starts the Wine environment, boots the virtual Windows desktop, and launches the executable.
+
+    **Option B — Create a shortcut (recommended for games)**
+
+    1. Open your container and tap **Add Shortcut**.
+    2. Point it to the `.exe` file.
+    3. Optionally configure per-shortcut settings such as a custom screen size or Box64 preset.
+    4. The shortcut appears on the Winlator home screen for quick access.
+
+    <Tip>
+      Running via a shortcut lets you set individual settings for each game without affecting other applications in the same container. This is the preferred workflow for managing multiple games.
+    </Tip>
+  </Step>
+
+  <Step title="First-run tips">
+    If something does not work as expected on the first launch, the following adjustments solve the most common issues:
+
+    **Performance is poor**
+
+    Open **Container Settings** > **Advanced** and change the **Box64 preset** from `Compatibility` to `Performance`. This trades some compatibility for significantly higher emulation throughput on most games.
+
+    **Application uses .NET Framework and crashes or shows missing-component errors**
+
+    Install Wine Mono from inside the running Windows environment: open the **Start Menu** > **System Tools** > **Installers** and run the Wine Mono installer.
+
+    **Older game fails to start or shows a black screen**
+
+    Some pre-2004 games require an older OpenGL extension set. Add the following environment variable in **Container Settings** > **Environment Variables**:
+
+    ```text
+    MESA_EXTENSION_MAX_YEAR=2003
+    ```
+
+    **Low-resolution game does not fill the screen**
+
+    In the shortcut settings, enable the **Force Fullscreen** option. This scales the virtual desktop to fit your display regardless of the game's internal resolution.
+
+    **Unity Engine game crashes or has rendering artifacts**
+
+    Try changing the Box64 preset to `Stability`, or add the following exec argument in the shortcut settings:
+
+    ```text
+    -force-gfx-direct
+    ```
+  </Step>
+</Steps>
+
+## What's next
+
+Now that you have a container running, explore these areas to get more out of Winlator:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Container settings" icon="sliders" href="/containers/settings">
+    Configure screen resolution, graphics drivers, Wine components, and drive mappings.
+  </Card>
+  <Card title="Controls" icon="gamepad" href="/controls/input-controls">
+    Set up on-screen controls or map an external gamepad to keyboard and mouse input.
+  </Card>
+  <Card title="Box64 presets" icon="gauge" href="/graphics/box86-box64-presets">
+    Optimize Box64 presets and CPU affinity for better frame rates.
+  </Card>
+  <Card title="Wine components" icon="puzzle" href="/advanced/wine-components">
+    Enable DirectX, Visual C++ runtimes, and other Windows components inside your container.
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

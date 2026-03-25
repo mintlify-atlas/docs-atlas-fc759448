@@ -1,0 +1,74 @@
+---
+title: "Installation"
+description: "Download and install Winlator on your Android device to run Windows applications via Wine and Box86/Box64."
+---
+
+Winlator is distributed as a standalone APK through GitHub Releases. There is no Play Store listing — all official releases come directly from the project repository.
+
+<Note>
+  Only install Winlator from the official [GitHub Releases](https://github.com/brunodev85/winlator/releases) page. Unofficial APKs from third-party sites may be modified or contain malware.
+</Note>
+
+## Requirements
+
+<CardGroup cols={2}>
+  <Card title="Android version" icon="android">
+    Android 8.0 or later (API level 26+)
+  </Card>
+  <Card title="Device architecture" icon="cpu">
+    ARM64 (64-bit) processor required
+  </Card>
+  <Card title="Free storage" icon="hard-drive">
+    At least 2 GB of free storage for the system image and containers
+  </Card>
+  <Card title="Graphics" icon="monitor">
+    OpenGL ES 2.0 support (nearly all modern Android devices)
+  </Card>
+</CardGroup>
+
+## Install Winlator
+
+<Steps>
+  <Step title="Download the APK">
+    Go to the [Winlator GitHub Releases page](https://github.com/brunodev85/winlator/releases) and download `Winlator_10.1.apk` from the latest release (version 10.1).
+  </Step>
+
+  <Step title="Allow installation from unknown sources">
+    Because Winlator is not distributed through the Play Store, Android requires you to allow installation from unknown sources.
+
+    On most devices:
+    1. Open **Settings** > **Apps** (or **Application Manager**).
+    2. Tap your browser or file manager.
+    3. Enable **Install unknown apps** (or **Allow from this source**).
+
+    The exact path varies by Android version and device manufacturer.
+  </Step>
+
+  <Step title="Open the APK">
+    Locate the downloaded `Winlator_10.1.apk` file using your file manager and tap it to begin installation. Confirm when prompted by Android.
+  </Step>
+
+  <Step title="Grant permissions">
+    When you first launch Winlator, Android will request the following permissions:
+
+    | Permission | Purpose |
+    |---|---|
+    | `WRITE_EXTERNAL_STORAGE` | Save container data, game files, and shortcuts to external storage |
+    | `READ_EXTERNAL_STORAGE` | Access `.exe` files and game assets stored on your device |
+    | `MODIFY_AUDIO_SETTINGS` | Configure audio output for Wine's audio drivers |
+
+    Tap **Allow** for each prompt. Denying storage permissions will prevent Winlator from reading or writing game files.
+  </Step>
+
+  <Step title="Wait for the initial setup to complete">
+    On the very first launch, Winlator installs its internal Linux filesystem image (`imagefs`). This is a compressed system archive bundled inside the APK that gets extracted to your device's internal storage.
+
+    A progress dialog will appear with the message **Installing system files**. Do not close the app during this step — it typically takes 30–90 seconds depending on your device.
+
+    <Note>
+      If the installation fails, Winlator will display an error toast. This can happen if your device runs out of storage mid-extraction. Free up space and relaunch the app to retry.
+    </Note>
+  </Step>
+</Steps>
+
+Once the setup dialog closes, Winlator is ready to use. Continue to [Quickstart](/quickstart) to create your first container and run a Windows application.

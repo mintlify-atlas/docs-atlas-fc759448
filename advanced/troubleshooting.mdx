@@ -1,0 +1,126 @@
+---
+title: "Troubleshooting"
+description: "Diagnose and fix the most common issues with Winlator containers: performance, crashes, graphics glitches, audio problems, and installation errors."
+---
+
+<AccordionGroup>
+  <Accordion title="Performance issues" icon="gauge">
+    Poor frame rates and stuttering are the most common complaints when running Windows games on Android. Try these steps in order.
+
+    <Steps>
+      <Step title="Switch Box64 to the Performance preset">
+        Open **Container Settings → Advanced Tab** and change the **Box64 Preset** to `Performance`. This tells Box64 to prefer speed over strict compatibility in its x86-64 translation.
+      </Step>
+      <Step title="Verify mesa_glthread is enabled">
+        In **Container Settings → Environment Variables**, confirm `mesa_glthread=true` is present. It is on by default but may have been removed accidentally.
+      </Step>
+      <Step title="Enable WINEESYNC">
+        Make sure `WINEESYNC=1` is in the environment variables list. esync dramatically reduces CPU usage for synchronization-heavy applications.
+      </Step>
+      <Step title="Switch to DXVK">
+        In **Container Settings**, change the **DX Wrapper** from `WineD3D` to `dxvk`. DXVK translates D3D9/10/11 to Vulkan, which is much faster on Adreno GPUs with the Turnip driver.
+      </Step>
+      <Step title="Use per-shortcut settings for Unity games">
+        If the game uses the Unity Engine, open the shortcut settings and add `-force-gfx-direct` to the **Exec Arguments** field. This forces Unity to use a single rendering thread and can significantly improve stability and frame rate.
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Application won't start" icon="circle-x">
+    When a Windows application exits immediately, shows a crash dialog, or never opens:
+
+    <Steps>
+      <Step title="Check the DX wrapper">
+        Match the wrapper to the DirectX version the game uses:
+
+        | DirectX version | Recommended wrapper |
+        |---|---|
+        | DirectX 9 / 10 / 11 | `dxvk` |
+        | DirectX 12 | `vkd3d` |
+        | Very old DirectDraw | `cnc-ddraw` |
+      </Step>
+      <Step title="Install Wine Mono for .NET apps">
+        If the application shows an error about .NET Framework or `mscoree.dll`:
+        1. Start the container and open the Windows Start Menu
+        2. Navigate to **System Tools → Installers**
+        3. Install **Wine Mono**
+      </Step>
+      <Step title="Try a different Wine version">
+        Some applications have regressions in specific Wine releases. Install an alternative Wine version via **Settings → Install Wine Version**, then switch the container to use it.
+      </Step>
+      <Step title="Read Wine debug output">
+        Enable Wine debug logging in **Settings → Enable Wine Debug**. The default channels (`warn,err,fixme`) will surface most startup errors in the log output.
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Old games display issues" icon="display">
+    Games from the early 2000s and earlier often have trouble with modern graphics stacks.
+
+    - **Blank screen or immediate crash on launch:** Add `MESA_EXTENSION_MAX_YEAR=2003` to **Container Settings → Environment Variables**. This hides modern GL extensions that old games cannot handle.
+    - **DirectDraw games (RTS, strategy):** Switch the DX wrapper to `cnc-ddraw` (CNC DDraw). It provides a software-accelerated DirectDraw implementation tuned for classic titles.
+    - **Low-resolution games squeezed into a corner:** Open the shortcut settings and enable **Force Fullscreen**. This stretches the game's output to fill the display.
+    - **Corrupted 2D sprites or palette issues:** Some very old titles expect an 8-bit color mode. Try enabling `cnc-ddraw` and configuring its renderer in the DX wrapper settings.
+  </Accordion>
+
+  <Accordion title="Graphical glitches or crashes in-game" icon="image">
+    Visual artifacts, flickering, or GPU-triggered crashes usually have driver-level causes.
+
+    <Steps>
+      <Step title="Switch Box64 to the Stability preset">
+        In **Container Settings → Advanced Tab**, set the Box64 Preset to `Stability`. This sacrifices some speed for more conservative JIT behavior that reduces crashes in complex games.
+      </Step>
+      <Step title="Try a different graphics driver">
+        - **Turnip** (default): Adreno GPU Vulkan driver — fastest but requires an Adreno GPU.
+        - **VirGL**: Software-based OpenGL renderer — slower but highly compatible. Use this as a fallback on non-Adreno devices.
+      </Step>
+      <Step title="Disable mesa_glthread">
+        If the game crashes with what appears to be a threading race condition, try setting `mesa_glthread=false` in environment variables. This removes the GL threading layer at the cost of some performance.
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Audio problems" icon="volume">
+    See the full [Audio configuration](/advanced/audio) page for detailed guidance. Quick checks:
+
+    - Confirm `directsound=1` in **Container Settings → Wine Components**
+    - Verify the audio driver is set to `alsa` in Container Settings
+    - For MIDI music, enable `directmusic=1`
+    - For video cutscene audio, enable `directshow=1`
+  </Accordion>
+
+  <Accordion title="32-bit app compatibility" icon="microchip">
+    32-bit Windows applications require both a 32-bit Wine configuration and Box86 for x86 translation.
+
+    <Steps>
+      <Step title="Enable WoW64 mode">
+        In **Container Settings → Advanced Tab**, make sure **WoW64 Mode** is enabled. This is the default setting and allows 32-bit apps to run alongside 64-bit Wine.
+      </Step>
+      <Step title="Configure the Box86 preset">
+        Box86 handles the 32-bit x86 instruction translation. In **Container Settings → Advanced Tab**, set the **Box86 Preset** to an appropriate level:
+        - `Compatibility`: Best for broad support
+        - `Performance`: Faster but may cause instability in some games
+      </Step>
+      <Step title="Check for a 64-bit version">
+        Many 32-bit games also have 64-bit executables in the same installation directory. Try launching the `*64.exe` or `*_x64.exe` variant if available — it will bypass Box86 entirely.
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Installation or storage errors" icon="hard-drive">
+    - **Winlator fails to install or initialize:** Ensure at least **2 GB of free internal storage** is available. The container filesystem, Wine prefix, and shader cache all require significant space.
+    - **Storage permission denied:** Grant Winlator access to external storage in **Android Settings → Apps → Winlator → Permissions → Files and media**.
+    - **Cannot access D: or E: drive:** The default `D:` drive maps to the Android Downloads folder and `E:` to Winlator's internal storage directory. If either path is missing, verify the drive mapping in **Container Settings → Drives**.
+    - **App crashes on install:** Force-stop Winlator, clear its cache from Android Settings, and relaunch to retry initialization.
+  </Accordion>
+</AccordionGroup>
+
+## Reporting bugs
+
+If none of the above resolves your issue, file a bug report on the official GitHub repository:
+
+**[github.com/brunodev85/winlator/issues](https://github.com/brunodev85/winlator/issues)**
+
+<Tip>
+  Include your device model, Android version, Winlator version, the name of the application you are trying to run, and the Wine debug log output when filing a report. This helps maintainers reproduce and fix the issue faster.
+</Tip>
